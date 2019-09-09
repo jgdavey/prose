@@ -1,0 +1,10 @@
+[package]
+name = "prose"
+version = "0.1.0"
+authors = ["Joshua Davey <josh@joshuadavey.com>"]
+edition = "2018"
+
+[dependencies]
+unicode-width = "0.1.6"
+clap = "2.33"
+pathfinding = "1.1"
