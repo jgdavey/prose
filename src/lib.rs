@@ -5,9 +5,9 @@
 //!
 //! use prose::{Reformatter,FormatOpts};
 //!
-//! let data = "Lot's of string data... to be reformatted"
+//! let data = "Lot's of string data... to be reformatted";
 //! let opts = FormatOpts::default();
-//! let reformatter = Reformatter::new(opts, data);
+//! let reformatter = Reformatter::new(&opts, data);
 //! let new_data = reformatter.reformatted();
 //! ```
 
