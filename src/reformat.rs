@@ -13,12 +13,6 @@ impl Default for FormatOpts {
     }
 }
 
-// impl FormatOpts {
-//     pub fn new() -> Self {
-//         Self::default()
-//     }
-// }
-
 fn indentation(s: &str) -> usize {
     let mut i = 0;
     for c in s.chars() {
@@ -31,15 +25,144 @@ fn indentation(s: &str) -> usize {
     0
 }
 
-fn determine_indentation(lines: Vec<&str>) -> (usize, usize) {
-    let first_indent = indentation(&lines[0]);
-    let indent = if lines.len() > 1 {
-        indentation(&lines[1])
-    } else {
-        first_indent
-    };
+struct Analysis {
+    prefix: String,
+    suffix: String,
+    words: Vec<String>
+}
 
-    (first_indent, indent)
+// returns prefix, suffix, words separated by spaces
+fn extract_from_lines(lines: &Vec<&str>) -> (Vec<char>, Vec<char>, Vec<String>) {
+    let charlines = lines.iter().map(|l| l.chars().collect::<Vec<_>>()).collect::<Vec<_>>();
+
+    let mut i = 0;
+    let mut prefix = None;
+    let mut prefixvec = vec![];
+    let mut suffix = None;
+    let mut suffixvec = vec![];
+    if charlines.len() > 1 {
+        loop {
+            let mut p = None;
+            let mut s = None;
+            if prefix.is_some() && suffix.is_some() {
+                break;
+            }
+            for line in &charlines {
+                let len = line.len();
+                if i == len {
+                    p = None;
+                    s = None;
+                    prefix = Some(i);
+                    suffix = Some(i);
+                    break;
+                }
+                if prefix.is_none() {
+                    match p {
+                        None => {
+                            p = Some(line[i]);
+                        }
+                        Some(letter) if letter != line[i] => {
+                            p = None;
+                            prefix = Some(i);
+                        },
+                        _ => ()
+                    }
+                }
+                if suffix.is_none() {
+                    match s {
+                        None => {
+                            s = Some(line[len - i - 1]);
+                        },
+                        Some(letter) if letter != line[len - i - 1] => {
+                            s = None;
+                            suffix = Some(i);
+                        },
+                        _ => ()
+                    }
+
+                }
+            }
+            if let Some(letter) = p {
+                prefixvec.push(letter);
+            }
+            if let Some(letter) = s {
+                suffixvec.push(letter);
+            }
+            i += 1;
+        }
+    }
+    suffixvec.reverse();
+    let mut words = vec![];
+    for line in &charlines {
+        let len = line.len();
+        let trimmed = &line[prefixvec.len()..(len - suffixvec.len())];
+        let mut word = String::new();
+        for c in trimmed {
+            if c.is_whitespace() {
+                if !word.is_empty() {
+                    words.push(word);
+                    word = String::new();
+                }
+            } else {
+                word.push(*c);
+            }
+        }
+        if !word.is_empty() {
+            words.push(word);
+        }
+    }
+
+    (prefixvec, suffixvec, words)
+}
+
+fn analyze(lines: Vec<&str>) -> Analysis {
+    let (prefixvec, suffixvec, words) = extract_from_lines(&lines);
+    let first_line = lines[0];
+    let fl_without_prefix: String = first_line.chars().skip(prefixvec.len()).collect();
+    let first_indent = indentation(&fl_without_prefix);
+    let prefix: String = prefixvec.iter().collect();
+    let suffix: String = suffixvec.iter().collect();
+    let mut words = words;
+
+    if first_indent > 0 {
+        let mut indented = spaces(first_indent).to_string();
+        indented.push_str(&words[0]);
+        words[0] = indented;
+    }
+
+    Analysis { words, prefix, suffix }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn analyze_simple_prefix_test() {
+        let input = vec!["> Line one!",
+                         "> line two?"];
+        let analysis = analyze(input);
+        assert_eq!(analysis.words, vec!["Line", "one!", "line", "two?"]);
+        assert_eq!(analysis.prefix, "> ".to_string());
+        assert_eq!(analysis.suffix, "".to_string());
+    }
+    #[test]
+    fn analyze_first_line_indent_test() {
+        let input = vec!["  First line,",
+                         "and second one."];
+        let analysis = analyze(input);
+        assert_eq!(analysis.words, vec!["  First", "line,", "and", "second", "one."]);
+        assert_eq!(analysis.prefix, "".to_string());
+        assert_eq!(analysis.suffix, "".to_string());
+    }
+    #[test]
+    fn analyze_single_line_test() {
+        let input = vec!["First line, and actually the only line."];
+        let analysis = analyze(input);
+        assert_eq!(analysis.words, vec!["First", "line,", "and", "actually", "the", "only", "line."]);
+        assert_eq!(analysis.prefix, "".to_string());
+        assert_eq!(analysis.suffix, "".to_string());
+    }
 }
 
 
@@ -61,7 +184,9 @@ impl Entry {
 
 #[derive(Default)]
 pub struct Reformatter {
-    indent: usize,
+    prefix: String,
+    suffix: String,
+    suffix_length: usize,
     target: usize,
     last_line: bool,
     fit: bool,
@@ -71,17 +196,13 @@ pub struct Reformatter {
 impl Reformatter {
     pub fn new(opts: &FormatOpts, data: &str) -> Self {
         let input_lines: Vec<_> = data.lines().collect();
-        let (first_indent, indent) = determine_indentation(input_lines);
-        let target = *[opts.max_length - indent, 1].iter().max().unwrap();
-
-        let mut words: Vec<_> = data.split_whitespace().map(String::from).collect();
-        if first_indent > indent {
-            let mut indented = spaces(first_indent - indent);
-            indented.push_str(&words[0]);
-            words[0] = indented;
-        }
-
-        Reformatter {indent, target, words,
+        let Analysis {prefix, suffix, words} = analyze(input_lines);
+        let prefix_length = UnicodeWidthStr::width(&prefix[..]);
+        let suffix_length = UnicodeWidthStr::width(&suffix[..]);
+        let rawtarget = opts.max_length as i64 - prefix_length as i64 - suffix_length as i64;
+        let target = *[rawtarget, 1].iter().max().unwrap() as usize;
+        // eprintln!("Prefix: {}, Suffix: {}, Max: {}, Target: {}", prefix, suffix, opts.max_length, target);
+        Reformatter {prefix, suffix, target, words, suffix_length,
                      last_line: opts.last_line,
                      fit: opts.reduce_jaggedness }
     }
@@ -150,12 +271,14 @@ impl Reformatter {
 
         let mut path = vec![];
         let mut best_cost = 100_000_000;
+        let mut best_target = max_target;
 
         for target in (min_target..=max_target).rev() {
             let (p, cost) = self.solve(target);
             if cost < best_cost {
                 best_cost = cost;
                 path = p;
+                best_target = target;
             }
         }
 
@@ -163,8 +286,15 @@ impl Reformatter {
 
         for s in path.windows(2) {
             if let [start, end] = *s {
-                let mut line = spaces(self.indent);
-                line.push_str(&self.words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" "));
+                let mut line = self.prefix.clone();
+                let body = &self.words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" ");
+                line.push_str(&body);
+                if self.suffix_length > 0 {
+                    let pad = spaces(best_target - UnicodeWidthStr::width(&body[..]));
+                    line.push_str(&pad);
+                    line.push_str(&self.suffix);
+                }
+
                 lines.push(line);
             }
         }

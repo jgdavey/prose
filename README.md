@@ -6,8 +6,7 @@ A CLI utility to reformat text.
 aims to be similar, albeit with fewer features, while also being
 Unicode-aware.
 
-## Not yet implemented
+## Planned but not yet implemented
 
 - nested quoted email formatting
-- prefix/suffix/ascii-art border awareness
 - tab character handling
