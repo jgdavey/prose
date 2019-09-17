@@ -19,6 +19,24 @@ enum Box {
     BlankLine
 }
 
+impl Box {
+    fn is_blank(&self) -> bool {
+        match self {
+            Self::BlankLine => true,
+            _ => false
+        }
+    }
+}
+
+impl ToString for Box {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Word(w) => w.to_string(),
+            Self::BlankLine => "".to_string()
+        }
+    }
+}
+
 trait Width {
     fn width(&self) -> usize;
 }
@@ -32,15 +50,6 @@ impl Width for String {
 impl Width for &str {
     fn width(&self) -> usize {
         UnicodeWidthStr::width(*self)
-    }
-}
-
-impl ToString for Box {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Word(w) => w.to_string(),
-            Self::BlankLine => "".to_string()
-        }
     }
 }
 
@@ -253,8 +262,8 @@ impl Reformatter {
     pub fn new(opts: &FormatOpts, data: &str) -> Self {
         let input_lines: Vec<_> = data.lines().collect();
         let Analysis {prefix, suffix, words} = analyze(input_lines);
-        let prefix_length = UnicodeWidthStr::width(&prefix[..]);
-        let suffix_length = UnicodeWidthStr::width(&suffix[..]);
+        let prefix_length = prefix.width();
+        let suffix_length = suffix.width();
         let rawtarget = opts.max_length as i64 - prefix_length as i64 - suffix_length as i64;
         let target = std::cmp::max(rawtarget, 1) as usize;
         // eprintln!("Prefix: {}, Suffix: {}, Max: {}, Target: {}", prefix, suffix, opts.max_length, target);
@@ -349,7 +358,7 @@ impl Reformatter {
                 let body = &self.words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" ");
                 line.push_str(&body);
                 if self.suffix_length > 0 {
-                    let pad = spaces(best_target - UnicodeWidthStr::width(&body[..]));
+                    let pad = spaces(best_target - body.width());
                     line.push_str(&pad);
                     line.push_str(&self.suffix);
                 }
