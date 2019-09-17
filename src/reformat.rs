@@ -13,6 +13,37 @@ impl Default for FormatOpts {
     }
 }
 
+#[derive(Debug,PartialEq)]
+enum Box {
+    Word(String),
+    BlankLine
+}
+
+trait Width {
+    fn width(&self) -> usize;
+}
+
+impl Width for String {
+    fn width(&self) -> usize {
+        UnicodeWidthStr::width(&self[..])
+    }
+}
+
+impl Width for &str {
+    fn width(&self) -> usize {
+        UnicodeWidthStr::width(*self)
+    }
+}
+
+impl ToString for Box {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Word(w) => w.to_string(),
+            Self::BlankLine => "".to_string()
+        }
+    }
+}
+
 fn indentation(s: &str) -> usize {
     let mut i = 0;
     for c in s.chars() {
@@ -28,11 +59,11 @@ fn indentation(s: &str) -> usize {
 struct Analysis {
     prefix: String,
     suffix: String,
-    words: Vec<String>
+    words: Vec<Box>
 }
 
 // returns prefix, suffix, words separated by spaces
-fn extract_from_lines(lines: &Vec<&str>) -> (Vec<char>, Vec<char>, Vec<String>) {
+fn extract_from_lines(lines: &Vec<&str>) -> (Vec<char>, Vec<char>, Vec<Box>) {
     let charlines = lines.iter().map(|l| l.chars().collect::<Vec<_>>()).collect::<Vec<_>>();
 
     let mut i = 0;
@@ -92,23 +123,27 @@ fn extract_from_lines(lines: &Vec<&str>) -> (Vec<char>, Vec<char>, Vec<String>) 
         }
     }
     suffixvec.reverse();
-    let mut words = vec![];
+    let mut words: Vec<Box> = vec![];
     for line in &charlines {
         let len = line.len();
         let trimmed = &line[prefixvec.len()..(len - suffixvec.len())];
         let mut word = String::new();
+        let mut found_non_blank = false;
         for c in trimmed {
             if c.is_whitespace() {
                 if !word.is_empty() {
-                    words.push(word);
+                    words.push(Box::Word(word));
                     word = String::new();
                 }
             } else {
+                found_non_blank = true;
                 word.push(*c);
             }
         }
         if !word.is_empty() {
-            words.push(word);
+            words.push(Box::Word(word));
+        } else if !found_non_blank {
+            words.push(Box::BlankLine);
         }
     }
 
@@ -125,9 +160,11 @@ fn analyze(lines: Vec<&str>) -> Analysis {
     let mut words = words;
 
     if first_indent > 0 {
-        let mut indented = spaces(first_indent).to_string();
-        indented.push_str(&words[0]);
-        words[0] = indented;
+        if let Box::Word(w) = &words[0] {
+            let mut indented = spaces(first_indent).to_string();
+            indented.push_str(w);
+            words[0] = Box::Word(indented);
+        }
     }
 
     Analysis { words, prefix, suffix }
@@ -137,12 +174,22 @@ fn analyze(lines: Vec<&str>) -> Analysis {
 mod tests {
     use super::*;
 
+    fn boxify(v: Vec<&str>) -> Vec<Box> {
+        v.iter().map(|i| {
+            if *i == "" {
+                Box::BlankLine
+            } else {
+                Box::Word(i.to_string())
+            }
+        }).collect()
+    }
+
     #[test]
     fn analyze_simple_prefix_test() {
         let input = vec!["> Line one!",
                          "> line two?"];
         let analysis = analyze(input);
-        assert_eq!(analysis.words, vec!["Line", "one!", "line", "two?"]);
+        assert_eq!(analysis.words, boxify(vec!["Line", "one!", "line", "two?"]));
         assert_eq!(analysis.prefix, "> ".to_string());
         assert_eq!(analysis.suffix, "".to_string());
     }
@@ -151,7 +198,7 @@ mod tests {
         let input = vec!["  First line,",
                          "and second one."];
         let analysis = analyze(input);
-        assert_eq!(analysis.words, vec!["  First", "line,", "and", "second", "one."]);
+        assert_eq!(analysis.words, boxify(vec!["  First", "line,", "and", "second", "one."]));
         assert_eq!(analysis.prefix, "".to_string());
         assert_eq!(analysis.suffix, "".to_string());
     }
@@ -159,10 +206,19 @@ mod tests {
     fn analyze_single_line_test() {
         let input = vec!["First line, and actually the only line."];
         let analysis = analyze(input);
-        assert_eq!(analysis.words, vec!["First", "line,", "and", "actually", "the", "only", "line."]);
+        assert_eq!(analysis.words, boxify(vec!["First", "line,", "and", "actually", "the", "only", "line."]));
         assert_eq!(analysis.prefix, "".to_string());
         assert_eq!(analysis.suffix, "".to_string());
     }
+    #[test]
+    fn analyze_blank_lines_test() {
+        let input = vec!["Not blank", " ", "not blank again"];
+        let analysis = analyze(input);
+        assert_eq!(analysis.words, boxify(vec!["Not", "blank", "", "not", "blank", "again"]));
+        assert_eq!(analysis.prefix, "".to_string());
+        assert_eq!(analysis.suffix, "".to_string());
+    }
+
 }
 
 
@@ -190,7 +246,7 @@ pub struct Reformatter {
     target: usize,
     last_line: bool,
     fit: bool,
-    words: Vec<String>
+    words: Vec<Box>
 }
 
 impl Reformatter {
@@ -241,9 +297,12 @@ impl Reformatter {
         let mut entries = vec![dummy];
         let mut offset = 0;
         for w in &self.words {
-            let len = UnicodeWidthStr::width(&w[..]);
-            offset += len;
-            entries.push(Entry::new(len, offset));
+            let wid = match w {
+                Box::Word(w) => w.width(),
+                Box::BlankLine => target
+            };
+            offset += wid;
+            entries.push(Entry::new(wid, offset));
         }
 
         let result = dijkstra(&0,
