@@ -1,0 +1,37 @@
+language: rust
+cache: cargo
+matrix:
+  include:
+    # Stable channel.
+    - os: linux
+      rust: stable
+      env: TARGET=x86_64-unknown-linux-gnu
+    - os: linux
+      rust: stable
+      env: TARGET=x86_64-unknown-linux-musl
+    - os: osx
+      rust: stable
+      env: TARGET=x86_64-apple-darwin
+    - os: windows
+      rust: stable
+      env: TARGET=x86_64-pc-windows-msvc
+
+env:
+  global:
+    # Default target on travis-ci.
+    # Used as conditional check in the install stage
+    - HOST=x86_64-unknown-linux-gnu
+    - PROJECT_NAME=prose
+
+install:
+  # prevent target re-add error from rustup
+  - if [[ $TRAVIS_OS_NAME = linux && $HOST != $TARGET ]]; then rustup target add $TARGET; fi
+
+script:
+  # Incorporate TARGET env var to the build and test process
+  - cargo build --target $TARGET --verbose
+  #- cargo test --target $TARGET --verbose
+
+notifications:
+  email:
+    on_success: never
