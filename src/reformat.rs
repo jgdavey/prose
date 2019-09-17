@@ -19,14 +19,14 @@ enum Box {
     BlankLine
 }
 
-impl Box {
-    fn is_blank(&self) -> bool {
-        match self {
-            Self::BlankLine => true,
-            _ => false
-        }
-    }
-}
+// impl Box {
+//     fn is_blank(&self) -> bool {
+//         match self {
+//             Self::BlankLine => true,
+//             _ => false
+//         }
+//     }
+// }
 
 impl ToString for Box {
     fn to_string(&self) -> String {
@@ -299,13 +299,13 @@ impl Reformatter {
         results
     }
 
-    fn solve(&self, target: usize) -> (Vec<usize>, u64) {
-        let count = self.words.len();
+    fn solve(&self, words: &[Box], target: usize) -> (Vec<usize>, u64) {
+        let count = words.len();
         let dummy = Entry::new(0, 0);
 
         let mut entries = vec![dummy];
         let mut offset = 0;
-        for w in &self.words {
+        for w in words {
             let wid = match w {
                 Box::Word(w) => w.width(),
                 Box::BlankLine => target
@@ -329,7 +329,7 @@ impl Reformatter {
         }
     }
 
-    pub fn reformatted(&self) -> String {
+    fn reformat_section(&self, words: &[Box]) -> String {
         let min_target = if self.fit {
             self.target / 2
         } else {
@@ -342,7 +342,7 @@ impl Reformatter {
         let mut best_target = max_target;
 
         for target in (min_target..=max_target).rev() {
-            let (p, cost) = self.solve(target);
+            let (p, cost) = self.solve(words, target);
             if cost < best_cost {
                 best_cost = cost;
                 path = p;
@@ -355,7 +355,7 @@ impl Reformatter {
         for s in path.windows(2) {
             if let [start, end] = *s {
                 let mut line = self.prefix.clone();
-                let body = &self.words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" ");
+                let body = words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" ");
                 line.push_str(&body);
                 if self.suffix_length > 0 {
                     let pad = spaces(best_target - body.width());
@@ -366,8 +366,11 @@ impl Reformatter {
                 lines.push(line);
             }
         }
-
         lines.join("\n")
+    }
+
+    pub fn reformatted(&self) -> String {
+        self.reformat_section(&self.words)
     }
 }
 
