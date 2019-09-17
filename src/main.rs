@@ -4,6 +4,17 @@ mod reformat;
 use reformat::{FormatOpts, reformat};
 use clap::{Arg, App};
 
+fn all_blank<T>(chars: T) -> bool
+where T: Iterator<Item = char>
+{
+    for c in chars {
+        if !c.is_whitespace() {
+            return false;
+        }
+    }
+    true
+}
+
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
     if !buf.is_empty() {
         println!("{}", reformat(&opts, &buf.join("\n")));
@@ -14,7 +25,7 @@ fn process_paragraphs(io: &mut StdinLock, opts: FormatOpts) -> io::Result<()> {
     let mut buf = vec![];
     for line in io.lines() {
         let l = line?;
-        if l == "" {
+        if all_blank(l.chars()) {
             print_reformatted(&opts, &buf);
             println!();
             buf = vec![];
