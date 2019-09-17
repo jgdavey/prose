@@ -200,7 +200,7 @@ impl Reformatter {
         let prefix_length = UnicodeWidthStr::width(&prefix[..]);
         let suffix_length = UnicodeWidthStr::width(&suffix[..]);
         let rawtarget = opts.max_length as i64 - prefix_length as i64 - suffix_length as i64;
-        let target = *[rawtarget, 1].iter().max().unwrap() as usize;
+        let target = std::cmp::max(rawtarget, 1) as usize;
         // eprintln!("Prefix: {}, Suffix: {}, Max: {}, Target: {}", prefix, suffix, opts.max_length, target);
         Reformatter {prefix, suffix, target, words, suffix_length,
                      last_line: opts.last_line,
