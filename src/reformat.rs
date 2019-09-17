@@ -1,5 +1,6 @@
 use unicode_width::UnicodeWidthStr;
 use pathfinding::prelude::dijkstra;
+use itertools::Itertools;
 
 pub struct FormatOpts {
     pub max_length: usize,
@@ -19,14 +20,14 @@ enum Box {
     BlankLine
 }
 
-// impl Box {
-//     fn is_blank(&self) -> bool {
-//         match self {
-//             Self::BlankLine => true,
-//             _ => false
-//         }
-//     }
-// }
+impl Box {
+    fn is_blank(&self) -> bool {
+        match self {
+            Self::BlankLine => true,
+            _ => false
+        }
+    }
+}
 
 impl ToString for Box {
     fn to_string(&self) -> String {
@@ -72,7 +73,7 @@ struct Analysis {
 }
 
 // returns prefix, suffix, words separated by spaces
-fn extract_from_lines(lines: &Vec<&str>) -> (Vec<char>, Vec<char>, Vec<Box>) {
+fn extract_from_lines(lines: &[&str]) -> (Vec<char>, Vec<char>, Vec<Box>) {
     let charlines = lines.iter().map(|l| l.chars().collect::<Vec<_>>()).collect::<Vec<_>>();
 
     let mut i = 0;
@@ -329,7 +330,7 @@ impl Reformatter {
         }
     }
 
-    fn reformat_section(&self, words: &[Box]) -> String {
+    fn reformat_section(&self, words: &[Box]) -> (Vec<String>, usize) {
         let min_target = if self.fit {
             self.target / 2
         } else {
@@ -354,23 +355,36 @@ impl Reformatter {
 
         for s in path.windows(2) {
             if let [start, end] = *s {
-                let mut line = self.prefix.clone();
-                let body = words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" ");
-                line.push_str(&body);
-                if self.suffix_length > 0 {
-                    let pad = spaces(best_target - body.width());
-                    line.push_str(&pad);
-                    line.push_str(&self.suffix);
-                }
-
-                lines.push(line);
+                lines.push(words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" "));
             }
         }
-        lines.join("\n")
+        (lines, best_target)
     }
 
     pub fn reformatted(&self) -> String {
-        self.reformat_section(&self.words)
+        // get "unadorned" body
+        let sections: Vec<_> = self.words
+            .split(|w| w.is_blank())
+            .filter(|s| !s.is_empty())
+            .map(|s| self.reformat_section(s))
+            .collect();
+        let max_padding = sections.iter().map(|s| s.1).max().unwrap_or(self.target);
+
+        let mut output = vec![];
+
+        for body in sections.iter().map(|s| &s.0).intersperse(&vec!["".to_string()]) {
+            for l in body {
+                let mut line = self.prefix.clone();
+                line.push_str(&l);
+                if self.suffix_length > 0 {
+                    let pad = spaces(max_padding - l.width());
+                    line.push_str(&pad);
+                    line.push_str(&self.suffix);
+                }
+                output.push(line);
+            }
+        }
+        output.join("\n")
     }
 }
 
