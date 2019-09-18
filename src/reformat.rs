@@ -368,7 +368,7 @@ impl Reformatter {
             .filter(|s| !s.is_empty())
             .map(|s| self.reformat_section(s))
             .collect();
-        let max_padding = sections.iter().map(|s| s.1).max().unwrap_or(self.target);
+        let max_padding = sections.iter().map(|s| s.1).max().unwrap_or(self.target) as i64;
 
         let mut output = vec![];
 
@@ -377,7 +377,8 @@ impl Reformatter {
                 let mut line = self.prefix.clone();
                 line.push_str(&l);
                 if self.suffix_length > 0 {
-                    let pad = spaces(max_padding - l.width());
+                    let pad_amount = max_padding - l.width() as i64;
+                    let pad = spaces(std::cmp::max(pad_amount, 0i64) as usize);
                     line.push_str(&pad);
                     line.push_str(&self.suffix);
                 }
