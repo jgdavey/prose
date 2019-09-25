@@ -38,11 +38,12 @@ fn process_paragraphs(io: &mut StdinLock, opts: FormatOpts) -> io::Result<()> {
 }
 
 fn matches_to_format_opts(matches: clap::ArgMatches) -> FormatOpts {
-    let width: usize = matches.value_of("width").unwrap().parse().expect("Choose a valid number");
+    let width: usize = matches.value_of("width").unwrap().parse().expect("Choose a positive number for width");
     let last_line = matches.is_present("last line");
     let reduce_jaggedness = matches.is_present("better fit");
+    let tab_width: usize = matches.value_of("tab width").unwrap().parse().expect("Choose a positive number for tab width");
 
-    FormatOpts { max_length: width, last_line, reduce_jaggedness }
+    FormatOpts { max_length: width, last_line, reduce_jaggedness, tab_width }
 }
 
 fn main() {
@@ -66,6 +67,12 @@ fn main() {
              .long("use-better-fit")
              .help("Be more aggressive in reducing jagged line endings, even if it means a narrower width")
              .takes_value(false))
+        .arg(Arg::with_name("tab width")
+             .short("t")
+             .long("tab-width")
+             .default_value("4")
+             .help("Number of spaces to expand tab characters to")
+             .takes_value(true))
         .get_matches();
 
     let opts = matches_to_format_opts(matches);

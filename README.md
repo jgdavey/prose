@@ -13,7 +13,6 @@ Unicode-aware.
 ## Planned but not yet implemented
 
 - nested quoted email formatting
-- tab character handling
 
 ## License
 

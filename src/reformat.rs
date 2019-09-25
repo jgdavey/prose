@@ -4,13 +4,14 @@ use itertools::Itertools;
 
 pub struct FormatOpts {
     pub max_length: usize,
+    pub tab_width: usize,
     pub last_line: bool,
     pub reduce_jaggedness: bool
 }
 
 impl Default for FormatOpts {
     fn default() -> Self {
-        FormatOpts { max_length: 72, last_line: false, reduce_jaggedness: false }
+        FormatOpts { max_length: 72, last_line: false, reduce_jaggedness: false, tab_width: 4 }
     }
 }
 
@@ -74,7 +75,9 @@ struct Analysis {
 
 // returns prefix, suffix, words separated by spaces
 fn extract_from_lines(lines: &[&str]) -> (Vec<char>, Vec<char>, Vec<Box>) {
-    let charlines = lines.iter().map(|l| l.chars().collect::<Vec<_>>()).collect::<Vec<_>>();
+    let charlines = lines.iter()
+        .map(|l| l.chars().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
 
     let mut i = 0;
     let mut prefix = None;
@@ -160,7 +163,7 @@ fn extract_from_lines(lines: &[&str]) -> (Vec<char>, Vec<char>, Vec<Box>) {
     (prefixvec, suffixvec, words)
 }
 
-fn analyze(lines: Vec<&str>) -> Analysis {
+fn analyze(lines: &[&str]) -> Analysis {
     let (prefixvec, suffixvec, words) = extract_from_lines(&lines);
     let first_line = lines[0];
     let fl_without_prefix: String = first_line.chars().skip(prefixvec.len()).collect();
@@ -198,7 +201,7 @@ mod tests {
     fn analyze_simple_prefix_test() {
         let input = vec!["> Line one!",
                          "> line two?"];
-        let analysis = analyze(input);
+        let analysis = analyze(&input);
         assert_eq!(analysis.words, boxify(vec!["Line", "one!", "line", "two?"]));
         assert_eq!(analysis.prefix, "> ".to_string());
         assert_eq!(analysis.suffix, "".to_string());
@@ -207,7 +210,7 @@ mod tests {
     fn analyze_first_line_indent_test() {
         let input = vec!["  First line,",
                          "and second one."];
-        let analysis = analyze(input);
+        let analysis = analyze(&input);
         assert_eq!(analysis.words, boxify(vec!["  First", "line,", "and", "second", "one."]));
         assert_eq!(analysis.prefix, "".to_string());
         assert_eq!(analysis.suffix, "".to_string());
@@ -215,7 +218,7 @@ mod tests {
     #[test]
     fn analyze_single_line_test() {
         let input = vec!["First line, and actually the only line."];
-        let analysis = analyze(input);
+        let analysis = analyze(&input);
         assert_eq!(analysis.words, boxify(vec!["First", "line,", "and", "actually", "the", "only", "line."]));
         assert_eq!(analysis.prefix, "".to_string());
         assert_eq!(analysis.suffix, "".to_string());
@@ -223,7 +226,7 @@ mod tests {
     #[test]
     fn analyze_blank_lines_test() {
         let input = vec!["Not blank", " ", "not blank again"];
-        let analysis = analyze(input);
+        let analysis = analyze(&input);
         assert_eq!(analysis.words, boxify(vec!["Not", "blank", "", "not", "blank", "again"]));
         assert_eq!(analysis.prefix, "".to_string());
         assert_eq!(analysis.suffix, "".to_string());
@@ -261,8 +264,10 @@ pub struct Reformatter {
 
 impl Reformatter {
     pub fn new(opts: &FormatOpts, data: &str) -> Self {
+        let expanded = spaces(opts.tab_width);
+        let data = data.replace("\t", &expanded);
         let input_lines: Vec<_> = data.lines().collect();
-        let Analysis {prefix, suffix, words} = analyze(input_lines);
+        let Analysis {prefix, suffix, words} = analyze(&input_lines);
         let prefix_length = prefix.width();
         let suffix_length = suffix.width();
         let rawtarget = opts.max_length as i64 - prefix_length as i64 - suffix_length as i64;
