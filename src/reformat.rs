@@ -165,21 +165,23 @@ fn extract_from_lines(lines: &[&str]) -> (Vec<char>, Vec<char>, Vec<Box>) {
 
 fn analyze(lines: &[&str]) -> Analysis {
     let (prefixvec, suffixvec, words) = extract_from_lines(&lines);
-    let first_line = lines[0];
-    let fl_without_prefix: String = first_line.chars().skip(prefixvec.len()).collect();
-    let first_indent = indentation(&fl_without_prefix);
+    let mut words = words;
     let prefix: String = prefixvec.iter().collect();
     let suffix: String = suffixvec.iter().collect();
-    let mut words = words;
 
-    if first_indent > 0 {
-        if let Box::Word(w) = &words[0] {
-            let mut indented = spaces(first_indent).to_string();
-            indented.push_str(w);
-            words[0] = Box::Word(indented);
+    if lines.len() > 0 {
+        let first_line = lines[0];
+        let fl_without_prefix: String = first_line.chars().skip(prefixvec.len()).collect();
+        let first_indent = indentation(&fl_without_prefix);
+
+        if first_indent > 0 {
+            if let Box::Word(w) = &words[0] {
+                let mut indented = spaces(first_indent).to_string();
+                indented.push_str(w);
+                words[0] = Box::Word(indented);
+            }
         }
     }
-
     Analysis { words, prefix, suffix }
 }
 
