@@ -15,6 +15,17 @@ impl Default for FormatOpts {
     }
 }
 
+#[allow(dead_code)]
+impl FormatOpts {
+    pub fn with_max_length(max_length: usize) -> Self {
+        Self { max_length, ..Default::default() }
+    }
+
+    pub fn new(max_length: usize, last_line: bool, reduce_jaggedness: bool, tab_width: usize) -> Self {
+        Self { max_length, last_line, reduce_jaggedness, tab_width }
+    }
+}
+
 #[derive(Debug,PartialEq)]
 enum Box {
     Word(String),
