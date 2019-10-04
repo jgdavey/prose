@@ -56,7 +56,7 @@ trait Width {
 
 impl Width for String {
     fn width(&self) -> usize {
-        UnicodeWidthStr::width(&self[..])
+        UnicodeWidthStr::width(self.as_str())
     }
 }
 
@@ -362,6 +362,8 @@ impl Reformatter {
 
         for target in (min_target..=max_target).rev() {
             let (p, cost) = self.solve(words, target);
+            // higher cost the further from original target
+            let cost = cost + max_target as u64 - target as u64;
             if cost < best_cost {
                 best_cost = cost;
                 path = p;
