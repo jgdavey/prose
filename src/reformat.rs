@@ -41,6 +41,7 @@ impl Width for &str {
     }
 }
 
+#[derive(Debug)]
 struct Block {
     prefix: String,
     suffix: String,
@@ -95,31 +96,20 @@ fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
     }
 }
 
-fn analyze(lines: &[&str]) -> Vec<Block> {
-    let charlines = lines.iter()
-        .map(|l| l.chars().collect::<Vec<_>>())
-        .collect::<Vec<_>>();
+fn spaces(n: usize) -> String {
+    std::iter::repeat(" ").take(n).collect::<String>()
+}
 
-    let mut prefix;
-    let mut suffix;
-
-    prefix = longest_common_affix(&charlines[..], Dir::Forward);
-    suffix = longest_common_affix(&charlines[..], Dir::Reverse);
-
-    if prefix == suffix && prefix.len() > 0 {
-        prefix = vec![];
-        suffix = vec![];
-    }
-
+fn collect_blocks(char_slices: &[Vec<char>], prefix: Vec<char>, suffix: Vec<char>) -> Vec<Block> {
     let prefixstr: String = prefix.iter().collect();
     let suffixstr: String = suffix.iter().collect();
 
     let mut blocks: Vec<Block> = vec![];
     let mut words: Vec<String> = vec![];
     let mut indentation = 0;
-    for (i, line) in charlines.iter().enumerate() {
+    for (i, line) in char_slices.iter().enumerate() {
         let len = line.len();
-        let trimmed = &line[prefix.len()..(len - suffix.len())];
+        let trimmed = &line[std::cmp::min(prefix.len(), len)..(len - suffix.len())];
         let mut word = String::new();
         let mut found_non_blank = false;
         for c in trimmed {
@@ -169,8 +159,71 @@ fn analyze(lines: &[&str]) -> Vec<Block> {
     blocks
 }
 
-fn spaces(n: usize) -> String {
-    std::iter::repeat(" ").take(n).collect::<String>()
+fn is_quote_char(c: &char) -> bool {
+    c.is_whitespace() || c == &'>'
+}
+
+fn is_not_quote_char(c: &char) -> bool {
+    !is_quote_char(c)
+}
+
+fn get_quotes(chars: &[char]) -> (usize, Vec<char>) {
+    let quote_chars = chars.splitn(2, is_not_quote_char).next().unwrap();
+    let quote_vec: Vec<_> = quote_chars.iter().cloned().collect();
+    if quote_vec.is_empty() {
+        (0, vec![])
+    } else {
+        let l = quote_vec.iter().filter(|&c| *c == '>').count();
+        (l, quote_vec)
+    }
+}
+
+fn analyze_quotes(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
+    let quotes: Vec<_> = char_slices.iter().map(|c| get_quotes(c.as_slice())).collect();
+    if quotes.iter().any(|&(l,_)| l > 0) {
+        let mut blocks = vec![];
+        let mut quote = &(0, vec![]);
+        let mut i = 0;
+        let mut idx = 0;
+        for this_quote in quotes.iter() {
+            if quotes[i].0 != quote.0 {
+                if idx < i {
+                    blocks.extend(collect_blocks(&char_slices[idx..i], quote.1.clone(), vec![]));
+                }
+                quote = this_quote;
+                idx = i;
+            }
+            i += 1;
+        }
+        if idx < i {
+            blocks.extend(collect_blocks(&char_slices[idx..i], quote.1.clone(), vec![]));
+        }
+        Some(blocks)
+    } else {
+        None
+    }
+}
+
+fn analyze_surround(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
+    let mut prefix = longest_common_affix(char_slices, Dir::Forward);
+    let mut suffix = longest_common_affix(char_slices, Dir::Reverse);
+
+    if prefix == suffix && prefix.len() > 0 {
+        prefix = vec![];
+        suffix = vec![];
+    }
+
+    Some(collect_blocks(char_slices, prefix, suffix))
+}
+
+
+fn analyze(lines: &[&str]) -> Vec<Block> {
+    let charlines = lines.iter()
+        .map(|l| l.chars().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    let blocks = analyze_quotes(&charlines[..])
+        .or_else(|| analyze_surround(&charlines[..]));
+    blocks.unwrap()
 }
 
 #[derive(Debug)]
@@ -299,7 +352,8 @@ impl Reformatter {
             }
         }
         if block.newline_after {
-            lines.push(block.prefix.clone());
+            let extra = block.prefix.trim_end().to_string();
+            lines.push(extra);
         }
         (lines, best_target)
     }
