@@ -1,8 +1,8 @@
 extern crate prose;
 
-use difference::{assert_diff};
-use prose::{Reformatter, FormatOpts};
+mod diff;
 
+use prose::{Reformatter, FormatOpts};
 
 #[test]
 fn test_blank_string() {
@@ -21,9 +21,8 @@ fn test_widths() {
     let mut actual = reformatter.reformatted();
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/comments_40.txt");
-    assert_diff!(&actual, expected, "\n", 0);
+    assert_diff!(expected, &actual);
 }
-
 
 #[test]
 fn test_aggressive_fit() {
@@ -35,5 +34,5 @@ fn test_aggressive_fit() {
     let mut actual = reformatter.reformatted();
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/plain_indented_50_f.txt");
-    assert_diff!(&actual, expected, "\n", 0);
+    assert_diff!(expected, &actual);
 }
