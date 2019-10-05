@@ -1,6 +1,5 @@
 use unicode_width::UnicodeWidthStr;
 use pathfinding::prelude::dijkstra;
-use itertools::Itertools;
 
 pub struct FormatOpts {
     pub max_length: usize,
@@ -26,30 +25,6 @@ impl FormatOpts {
     }
 }
 
-#[derive(Debug,PartialEq)]
-enum Box {
-    Word(String),
-    BlankLine
-}
-
-impl Box {
-    fn is_blank(&self) -> bool {
-        match self {
-            Self::BlankLine => true,
-            _ => false
-        }
-    }
-}
-
-impl ToString for Box {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Word(w) => w.to_string(),
-            Self::BlankLine => "".to_string()
-        }
-    }
-}
-
 trait Width {
     fn width(&self) -> usize;
 }
@@ -66,98 +41,95 @@ impl Width for &str {
     }
 }
 
-fn indentation(s: &str) -> usize {
-    let mut i = 0;
-    for c in s.chars() {
-        if c.is_whitespace() {
-            i += 1;
-        } else {
-            return i;
-        }
-    }
-    0
-}
-
-struct Analysis {
+struct Block {
     prefix: String,
     suffix: String,
-    words: Vec<Box>
+    words: Vec<String>,
+    newline_after: bool
 }
 
-// returns prefix, suffix, words separated by spaces
-fn extract_from_lines(lines: &[&str]) -> (Vec<char>, Vec<char>, Vec<Box>) {
+enum Dir {
+    Forward,
+    Reverse
+}
+
+fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
+    let get = |s: &[char], i| {
+        match dir {
+            Dir::Forward => s[i],
+            Dir::Reverse => s[s.len() - i -1]
+        }
+    };
+
+    if char_slices.is_empty() {
+        return vec![];
+    }
+    let mut ret = Vec::new();
+    let mut i = 0;
+    loop {
+        let mut c = None;
+        for s in char_slices {
+            if i == s.len() {
+                if let Dir::Reverse = dir {
+                    ret.reverse();
+                }
+                return ret;
+            }
+            match c {
+                None => {
+                    c = Some(get(s,i));
+                }
+                Some(letter) if letter != get(s,i) => {
+                    if let Dir::Reverse = dir {
+                        ret.reverse();
+                    }
+                    return ret
+                },
+                _ => continue,
+            }
+        }
+        if let Some(letter) = c {
+            ret.push(letter);
+        }
+        i += 1;
+    }
+}
+
+fn analyze(lines: &[&str]) -> Vec<Block> {
     let charlines = lines.iter()
         .map(|l| l.chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
 
-    let mut i = 0;
-    let mut prefix = None;
-    let mut prefixvec = vec![];
-    let mut suffix = None;
-    let mut suffixvec = vec![];
-    if charlines.len() > 1 {
-        loop {
-            let mut p = None;
-            let mut s = None;
-            if prefix.is_some() && suffix.is_some() {
-                break;
-            }
-            for line in &charlines {
-                let len = line.len();
-                if i == len {
-                    p = None;
-                    s = None;
-                    prefix = Some(i);
-                    suffix = Some(i);
-                    break;
-                }
-                if prefix.is_none() {
-                    match p {
-                        None => {
-                            p = Some(line[i]);
-                        }
-                        Some(letter) if letter != line[i] => {
-                            p = None;
-                            prefix = Some(i);
-                        },
-                        _ => ()
-                    }
-                }
-                if suffix.is_none() {
-                    match s {
-                        None => {
-                            s = Some(line[len - i - 1]);
-                        },
-                        Some(letter) if letter != line[len - i - 1] => {
-                            s = None;
-                            suffix = Some(i);
-                        },
-                        _ => ()
-                    }
+    let mut prefix;
+    let mut suffix;
 
-                }
-            }
-            if let Some(letter) = p {
-                prefixvec.push(letter);
-            }
-            if let Some(letter) = s {
-                suffixvec.push(letter);
-            }
-            i += 1;
-        }
+    prefix = longest_common_affix(&charlines[..], Dir::Forward);
+    suffix = longest_common_affix(&charlines[..], Dir::Reverse);
+
+    if prefix == suffix && prefix.len() > 0 {
+        prefix = vec![];
+        suffix = vec![];
     }
-    suffixvec.reverse();
-    let mut words: Vec<Box> = vec![];
-    for line in &charlines {
+
+    let prefixstr: String = prefix.iter().collect();
+    let suffixstr: String = suffix.iter().collect();
+
+    let mut blocks: Vec<Block> = vec![];
+    let mut words: Vec<String> = vec![];
+    let mut indentation = 0;
+    for (i, line) in charlines.iter().enumerate() {
         let len = line.len();
-        let trimmed = &line[prefixvec.len()..(len - suffixvec.len())];
+        let trimmed = &line[prefix.len()..(len - suffix.len())];
         let mut word = String::new();
         let mut found_non_blank = false;
         for c in trimmed {
             if c.is_whitespace() {
                 if !word.is_empty() {
-                    words.push(Box::Word(word));
+                    words.push(word);
                     word = String::new();
+                }
+                if words.is_empty() && i == 0 {
+                    indentation += 1;
                 }
             } else {
                 found_non_blank = true;
@@ -165,88 +137,37 @@ fn extract_from_lines(lines: &[&str]) -> (Vec<char>, Vec<char>, Vec<Box>) {
             }
         }
         if !word.is_empty() {
-            words.push(Box::Word(word));
+            words.push(word);
         } else if !found_non_blank {
-            words.push(Box::BlankLine);
+            if !words.is_empty() {
+                let mut s = spaces(indentation);
+                s.push_str(&words[0]);
+                words[0] = s;
+            }
+            blocks.push(Block {
+                prefix: prefixstr.clone(),
+                suffix: suffixstr.clone(),
+                words: words,
+                newline_after: true
+            });
+            words = vec![];
+            indentation = 0;
         }
     }
+    if !words.is_empty() {
+        let mut s = spaces(indentation);
+        s.push_str(&words[0]);
+        words[0] = s;
 
-    (prefixvec, suffixvec, words)
+        blocks.push(Block {
+            prefix: prefixstr,
+            suffix: suffixstr,
+            words: words,
+            newline_after: false
+        });
+    }
+    blocks
 }
-
-fn analyze(lines: &[&str]) -> Analysis {
-    let (prefixvec, suffixvec, words) = extract_from_lines(&lines);
-    let mut words = words;
-    let prefix: String = prefixvec.iter().collect();
-    let suffix: String = suffixvec.iter().collect();
-
-    if lines.len() > 0 {
-        let first_line = lines[0];
-        let fl_without_prefix: String = first_line.chars().skip(prefixvec.len()).collect();
-        let first_indent = indentation(&fl_without_prefix);
-
-        if first_indent > 0 {
-            if let Box::Word(w) = &words[0] {
-                let mut indented = spaces(first_indent).to_string();
-                indented.push_str(w);
-                words[0] = Box::Word(indented);
-            }
-        }
-    }
-    Analysis { words, prefix, suffix }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn boxify(v: Vec<&str>) -> Vec<Box> {
-        v.iter().map(|i| {
-            if *i == "" {
-                Box::BlankLine
-            } else {
-                Box::Word(i.to_string())
-            }
-        }).collect()
-    }
-
-    #[test]
-    fn analyze_simple_prefix_test() {
-        let input = vec!["> Line one!",
-                         "> line two?"];
-        let analysis = analyze(&input);
-        assert_eq!(analysis.words, boxify(vec!["Line", "one!", "line", "two?"]));
-        assert_eq!(analysis.prefix, "> ".to_string());
-        assert_eq!(analysis.suffix, "".to_string());
-    }
-    #[test]
-    fn analyze_first_line_indent_test() {
-        let input = vec!["  First line,",
-                         "and second one."];
-        let analysis = analyze(&input);
-        assert_eq!(analysis.words, boxify(vec!["  First", "line,", "and", "second", "one."]));
-        assert_eq!(analysis.prefix, "".to_string());
-        assert_eq!(analysis.suffix, "".to_string());
-    }
-    #[test]
-    fn analyze_single_line_test() {
-        let input = vec!["First line, and actually the only line."];
-        let analysis = analyze(&input);
-        assert_eq!(analysis.words, boxify(vec!["First", "line,", "and", "actually", "the", "only", "line."]));
-        assert_eq!(analysis.prefix, "".to_string());
-        assert_eq!(analysis.suffix, "".to_string());
-    }
-    #[test]
-    fn analyze_blank_lines_test() {
-        let input = vec!["Not blank", " ", "not blank again"];
-        let analysis = analyze(&input);
-        assert_eq!(analysis.words, boxify(vec!["Not", "blank", "", "not", "blank", "again"]));
-        assert_eq!(analysis.prefix, "".to_string());
-        assert_eq!(analysis.suffix, "".to_string());
-    }
-
-}
-
 
 fn spaces(n: usize) -> String {
     std::iter::repeat(" ").take(n).collect::<String>()
@@ -266,13 +187,10 @@ impl Entry {
 
 #[derive(Default)]
 pub struct Reformatter {
-    prefix: String,
-    suffix: String,
-    suffix_length: usize,
+    blocks: Vec<Block>,
     target: usize,
     last_line: bool,
     fit: bool,
-    words: Vec<Box>
 }
 
 impl Reformatter {
@@ -280,13 +198,10 @@ impl Reformatter {
         let expanded = spaces(opts.tab_width);
         let data = data.replace("\t", &expanded);
         let input_lines: Vec<_> = data.lines().collect();
-        let Analysis {prefix, suffix, words} = analyze(&input_lines);
-        let prefix_length = prefix.width();
-        let suffix_length = suffix.width();
-        let rawtarget = opts.max_length as i64 - prefix_length as i64 - suffix_length as i64;
-        let target = std::cmp::max(rawtarget, 1) as usize;
+        let blocks = analyze(&input_lines);
         // eprintln!("Prefix: {}, Suffix: {}, Max: {}, Target: {}", prefix, suffix, opts.max_length, target);
-        Reformatter {prefix, suffix, target, words, suffix_length,
+        Reformatter {blocks,
+                     target: opts.max_length,
                      last_line: opts.last_line,
                      fit: opts.reduce_jaggedness }
     }
@@ -318,17 +233,14 @@ impl Reformatter {
         results
     }
 
-    fn solve(&self, words: &[Box], target: usize) -> (Vec<usize>, u64) {
+    fn solve(&self, words: &[String], target: usize) -> (Vec<usize>, u64) {
         let count = words.len();
         let dummy = Entry::new(0, 0);
 
         let mut entries = vec![dummy];
         let mut offset = 0;
         for w in words {
-            let wid = match w {
-                Box::Word(w) => w.width(),
-                Box::BlankLine => target
-            };
+            let wid = w.width();
             offset += wid;
             entries.push(Entry::new(wid, offset));
         }
@@ -348,13 +260,19 @@ impl Reformatter {
         }
     }
 
-    fn reformat_section(&self, words: &[Box]) -> (Vec<String>, usize) {
+    fn reformat_section(&self, block: &Block) -> (Vec<String>, usize) {
+        let words = &block.words;
+        let rawtarget = self.target as i64
+            - block.prefix.width() as i64
+            - block.suffix.width() as i64;
+        let target = std::cmp::max(rawtarget, 1) as usize;
+
         let min_target = if self.fit {
-            self.target / 2
+            target / 2
         } else {
-            self.target
+            target
         };
-        let max_target = self.target;
+        let max_target = target;
 
         let mut path = vec![];
         let mut best_cost = 100_000_000;
@@ -375,32 +293,37 @@ impl Reformatter {
 
         for s in path.windows(2) {
             if let [start, end] = *s {
-                lines.push(words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" "));
+                let mut l = block.prefix.clone();
+                l.push_str(&words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" "));
+                lines.push(l);
             }
+        }
+        if block.newline_after {
+            lines.push(block.prefix.clone());
         }
         (lines, best_target)
     }
 
     pub fn reformatted(&self) -> String {
         // get "unadorned" body
-        let sections: Vec<_> = self.words
-            .split(|w| w.is_blank())
-            .filter(|s| !s.is_empty())
-            .map(|s| self.reformat_section(s))
+        let sections: Vec<_> = self.blocks.iter()
+            .map(|s| (s, self.reformat_section(s)))
             .collect();
-        let max_padding = sections.iter().map(|s| s.1).max().unwrap_or(self.target) as i64;
+        let max_padding = sections.iter().map(|s| (s.1).1).max().unwrap_or(self.target) as i64;
 
         let mut output = vec![];
 
-        for body in sections.iter().map(|s| &s.0).intersperse(&vec!["".to_string()]) {
+        for (block, (body, _)) in &sections {
+            let suffix_length = block.suffix.width();
+            let prefix_length = block.prefix.width();
+
             for l in body {
-                let mut line = self.prefix.clone();
-                line.push_str(&l);
-                if self.suffix_length > 0 {
-                    let pad_amount = max_padding - l.width() as i64;
+                let mut line = l.clone();
+                if suffix_length > 0 {
+                    let pad_amount = max_padding - l.width() as i64 + prefix_length as i64;
                     let pad = spaces(std::cmp::max(pad_amount, 0i64) as usize);
                     line.push_str(&pad);
-                    line.push_str(&self.suffix);
+                    line.push_str(&block.suffix);
                 }
                 output.push(line);
             }
