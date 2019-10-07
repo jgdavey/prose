@@ -120,6 +120,8 @@ fn collect_blocks(char_slices: &[Vec<char>], prefix: Vec<char>, suffix: Vec<char
     let prefixstr: String = prefix.iter().collect();
     let suffixstr: String = suffix.iter().collect();
 
+    eprintln!("prefix: {}, suffix: {}", prefixstr, suffixstr);
+
     let mut blocks: Vec<Block> = vec![];
     let mut words: Vec<String> = vec![];
     let mut indentation = 0;
@@ -235,7 +237,7 @@ fn analyze_surround(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
     let mut prefix = longest_common_affix(char_slices, Dir::Forward);
     let mut suffix = longest_common_affix(char_slices, Dir::Reverse);
 
-    if prefix == suffix && prefix.is_empty() {
+    if prefix == suffix && !prefix.is_empty() {
         prefix = vec![];
         suffix = vec![];
     }
