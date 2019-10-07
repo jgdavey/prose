@@ -1,27 +1,45 @@
-use unicode_width::UnicodeWidthStr;
 use pathfinding::prelude::dijkstra;
+use unicode_width::UnicodeWidthStr;
 
 pub struct FormatOpts {
     pub max_length: usize,
     pub tab_width: usize,
     pub last_line: bool,
-    pub reduce_jaggedness: bool
+    pub reduce_jaggedness: bool,
 }
 
 impl Default for FormatOpts {
     fn default() -> Self {
-        FormatOpts { max_length: 72, last_line: false, reduce_jaggedness: false, tab_width: 4 }
+        FormatOpts {
+            max_length: 72,
+            last_line: false,
+            reduce_jaggedness: false,
+            tab_width: 4,
+        }
     }
 }
 
 #[allow(dead_code)]
 impl FormatOpts {
     pub fn with_max_length(max_length: usize) -> Self {
-        Self { max_length, ..Default::default() }
+        Self {
+            max_length,
+            ..Default::default()
+        }
     }
 
-    pub fn new(max_length: usize, last_line: bool, reduce_jaggedness: bool, tab_width: usize) -> Self {
-        Self { max_length, last_line, reduce_jaggedness, tab_width }
+    pub fn new(
+        max_length: usize,
+        last_line: bool,
+        reduce_jaggedness: bool,
+        tab_width: usize,
+    ) -> Self {
+        Self {
+            max_length,
+            last_line,
+            reduce_jaggedness,
+            tab_width,
+        }
     }
 }
 
@@ -46,20 +64,18 @@ struct Block {
     prefix: String,
     suffix: String,
     words: Vec<String>,
-    newline_after: bool
+    newline_after: bool,
 }
 
 enum Dir {
     Forward,
-    Reverse
+    Reverse,
 }
 
 fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
-    let get = |s: &[char], i| {
-        match dir {
-            Dir::Forward => s[i],
-            Dir::Reverse => s[s.len() - i -1]
-        }
+    let get = |s: &[char], i| match dir {
+        Dir::Forward => s[i],
+        Dir::Reverse => s[s.len() - i - 1],
     };
 
     if char_slices.is_empty() {
@@ -78,14 +94,14 @@ fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
             }
             match c {
                 None => {
-                    c = Some(get(s,i));
+                    c = Some(get(s, i));
                 }
-                Some(letter) if letter != get(s,i) => {
+                Some(letter) if letter != get(s, i) => {
                     if let Dir::Reverse = dir {
                         ret.reverse();
                     }
-                    return ret
-                },
+                    return ret;
+                }
                 _ => continue,
             }
         }
@@ -137,8 +153,8 @@ fn collect_blocks(char_slices: &[Vec<char>], prefix: Vec<char>, suffix: Vec<char
             blocks.push(Block {
                 prefix: prefixstr.clone(),
                 suffix: suffixstr.clone(),
-                words: words,
-                newline_after: true
+                words,
+                newline_after: true,
             });
             words = vec![];
             indentation = 0;
@@ -152,8 +168,8 @@ fn collect_blocks(char_slices: &[Vec<char>], prefix: Vec<char>, suffix: Vec<char
         blocks.push(Block {
             prefix: prefixstr,
             suffix: suffixstr,
-            words: words,
-            newline_after: false
+            words,
+            newline_after: false,
         });
     }
     blocks
@@ -169,7 +185,7 @@ fn is_not_quote_char(c: &char) -> bool {
 
 fn get_quotes(chars: &[char]) -> (usize, Vec<char>) {
     let quote_chars = chars.splitn(2, is_not_quote_char).next().unwrap();
-    let quote_vec: Vec<_> = quote_chars.iter().cloned().collect();
+    let quote_vec: Vec<_> = quote_chars.to_vec();
     if quote_vec.is_empty() {
         (0, vec![])
     } else {
@@ -179,8 +195,11 @@ fn get_quotes(chars: &[char]) -> (usize, Vec<char>) {
 }
 
 fn analyze_quotes(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
-    let quotes: Vec<_> = char_slices.iter().map(|c| get_quotes(c.as_slice())).collect();
-    if quotes.iter().any(|&(l,_)| l > 0) {
+    let quotes: Vec<_> = char_slices
+        .iter()
+        .map(|c| get_quotes(c.as_slice()))
+        .collect();
+    if quotes.iter().any(|&(l, _)| l > 0) {
         let mut blocks = vec![];
         let mut quote = &(0, vec![]);
         let mut i = 0;
@@ -188,7 +207,11 @@ fn analyze_quotes(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
         for this_quote in quotes.iter() {
             if quotes[i].0 != quote.0 {
                 if idx < i {
-                    blocks.extend(collect_blocks(&char_slices[idx..i], quote.1.clone(), vec![]));
+                    blocks.extend(collect_blocks(
+                        &char_slices[idx..i],
+                        quote.1.clone(),
+                        vec![],
+                    ));
                 }
                 quote = this_quote;
                 idx = i;
@@ -196,7 +219,11 @@ fn analyze_quotes(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
             i += 1;
         }
         if idx < i {
-            blocks.extend(collect_blocks(&char_slices[idx..i], quote.1.clone(), vec![]));
+            blocks.extend(collect_blocks(
+                &char_slices[idx..i],
+                quote.1.clone(),
+                vec![],
+            ));
         }
         Some(blocks)
     } else {
@@ -208,7 +235,7 @@ fn analyze_surround(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
     let mut prefix = longest_common_affix(char_slices, Dir::Forward);
     let mut suffix = longest_common_affix(char_slices, Dir::Reverse);
 
-    if prefix == suffix && prefix.len() > 0 {
+    if prefix == suffix && prefix.is_empty() {
         prefix = vec![];
         suffix = vec![];
     }
@@ -216,20 +243,19 @@ fn analyze_surround(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
     Some(collect_blocks(char_slices, prefix, suffix))
 }
 
-
 fn analyze(lines: &[&str]) -> Vec<Block> {
-    let charlines = lines.iter()
+    let charlines = lines
+        .iter()
         .map(|l| l.chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
-    let blocks = analyze_quotes(&charlines[..])
-        .or_else(|| analyze_surround(&charlines[..]));
+    let blocks = analyze_quotes(&charlines[..]).or_else(|| analyze_surround(&charlines[..]));
     blocks.unwrap()
 }
 
 #[derive(Debug)]
 struct Entry {
     len: usize,
-    offset: usize
+    offset: usize,
 }
 
 impl Entry {
@@ -253,17 +279,25 @@ impl Reformatter {
         let input_lines: Vec<_> = data.lines().collect();
         let blocks = analyze(&input_lines);
         // eprintln!("Prefix: {}, Suffix: {}, Max: {}, Target: {}", prefix, suffix, opts.max_length, target);
-        Reformatter {blocks,
-                     target: opts.max_length,
-                     last_line: opts.last_line,
-                     fit: opts.reduce_jaggedness }
+        Reformatter {
+            blocks,
+            target: opts.max_length,
+            last_line: opts.last_line,
+            fit: opts.reduce_jaggedness,
+        }
     }
 
-    fn successors(&self, entries: &[Entry], i: usize, target: usize, allow_overage: bool) -> Vec<(usize, u64)> {
+    fn successors(
+        &self,
+        entries: &[Entry],
+        i: usize,
+        target: usize,
+        allow_overage: bool,
+    ) -> Vec<(usize, u64)> {
         let word1 = &entries[i];
         let count = entries.len();
         let mut results = vec![];
-        for (j, word2) in entries.iter().enumerate().take(count).skip(i+1) {
+        for (j, word2) in entries.iter().enumerate().take(count).skip(i + 1) {
             let linew = word2.offset - word1.offset + j - i - 1;
             //width of all words + width of all spaces = total line width
             if linew > target {
@@ -275,13 +309,14 @@ impl Reformatter {
                 break;
             }
             let cost;
-            if j > (count - 2) && !self.last_line { //handle last line
+            if j > (count - 2) && !self.last_line {
+                //handle last line
                 cost = 0;
             } else {
                 let diff = (target - linew) as u64;
                 cost = diff * diff;
             };
-            results.push((j,cost));
+            results.push((j, cost));
         }
         results
     }
@@ -298,33 +333,33 @@ impl Reformatter {
             entries.push(Entry::new(wid, offset));
         }
 
-        let result = dijkstra(&0,
-                              |i| self.successors(&entries, *i, target, false),
-                              |i| *i == count );
+        let result = dijkstra(
+            &0,
+            |i| self.successors(&entries, *i, target, false),
+            |i| *i == count,
+        );
 
         if let Some(tuple) = result {
             tuple
         } else {
             eprintln!("Warning: allowing some words to extend beyond target width");
             // try again, allowing overage
-            dijkstra(&0,
-                     |i| self.successors(&entries, *i, target, true),
-                     |i| *i == count ).expect("Unable to find optimum solution")
+            dijkstra(
+                &0,
+                |i| self.successors(&entries, *i, target, true),
+                |i| *i == count,
+            )
+            .expect("Unable to find optimum solution")
         }
     }
 
     fn reformat_section(&self, block: &Block) -> (Vec<String>, usize) {
         let words = &block.words;
-        let rawtarget = self.target as i64
-            - block.prefix.width() as i64
-            - block.suffix.width() as i64;
+        let rawtarget =
+            self.target as i64 - block.prefix.width() as i64 - block.suffix.width() as i64;
         let target = std::cmp::max(rawtarget, 1) as usize;
 
-        let min_target = if self.fit {
-            target / 2
-        } else {
-            target
-        };
+        let min_target = if self.fit { target / 2 } else { target };
         let max_target = target;
 
         let mut path = vec![];
@@ -347,7 +382,13 @@ impl Reformatter {
         for s in path.windows(2) {
             if let [start, end] = *s {
                 let mut l = block.prefix.clone();
-                l.push_str(&words[start..end].iter().map(|w| w.to_string()).collect::<Vec<_>>().join(" "));
+                l.push_str(
+                    &words[start..end]
+                        .iter()
+                        .map(|w| w.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                );
                 lines.push(l);
             }
         }
@@ -360,10 +401,16 @@ impl Reformatter {
 
     pub fn reformatted(&self) -> String {
         // get "unadorned" body
-        let sections: Vec<_> = self.blocks.iter()
+        let sections: Vec<_> = self
+            .blocks
+            .iter()
             .map(|s| (s, self.reformat_section(s)))
             .collect();
-        let max_padding = sections.iter().map(|s| (s.1).1).max().unwrap_or(self.target) as i64;
+        let max_padding = sections
+            .iter()
+            .map(|s| (s.1).1)
+            .max()
+            .unwrap_or(self.target) as i64;
 
         let mut output = vec![];
 
