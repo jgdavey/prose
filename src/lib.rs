@@ -14,4 +14,3 @@
 pub mod reformat;
 
 pub use reformat::{FormatOpts, Reformatter};
-

@@ -1,11 +1,12 @@
 use std::io::{self, BufRead, StdinLock};
 
 mod reformat;
-use reformat::{FormatOpts, reformat};
-use clap::{Arg, App};
+use clap::{App, Arg};
+use reformat::{reformat, FormatOpts};
 
 fn all_blank<T>(chars: T) -> bool
-where T: Iterator<Item = char>
+where
+    T: Iterator<Item = char>,
 {
     for c in chars {
         if !c.is_whitespace() {
@@ -38,12 +39,25 @@ fn process_paragraphs(io: &mut StdinLock, opts: FormatOpts) -> io::Result<()> {
 }
 
 fn matches_to_format_opts(matches: clap::ArgMatches) -> FormatOpts {
-    let width: usize = matches.value_of("width").unwrap().parse().expect("Choose a positive number for width");
+    let width: usize = matches
+        .value_of("width")
+        .unwrap()
+        .parse()
+        .expect("Choose a positive number for width");
     let last_line = matches.is_present("last line");
     let reduce_jaggedness = matches.is_present("better fit");
-    let tab_width: usize = matches.value_of("tab width").unwrap().parse().expect("Choose a positive number for tab width");
+    let tab_width: usize = matches
+        .value_of("tab width")
+        .unwrap()
+        .parse()
+        .expect("Choose a positive number for tab width");
 
-    FormatOpts { max_length: width, last_line, reduce_jaggedness, tab_width }
+    FormatOpts {
+        max_length: width,
+        last_line,
+        reduce_jaggedness,
+        tab_width,
+    }
 }
 
 fn main() {

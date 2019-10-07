@@ -1,13 +1,13 @@
 extern crate difference;
 
 use ansi_term;
+use ansi_term::Colour::{Green, Red};
 use ansi_term::Style;
-use ansi_term::Colour::{Red, Green};
-use difference::{Difference, Changeset};
+use difference::{Changeset, Difference};
 use std::env;
 
 pub fn print_diff(cs: &Changeset) -> std::io::Result<()> {
-    let Changeset {diffs, ..} = cs;
+    let Changeset { diffs, .. } = cs;
 
     let red_fg;
     let green_fg;
@@ -16,7 +16,7 @@ pub fn print_diff(cs: &Changeset) -> std::io::Result<()> {
         Ok("dumb") | Err(_) => {
             red_fg = Style::new();
             green_fg = Style::new();
-        },
+        }
         Ok(_) => {
             red_fg = Style::new().fg(Red);
             green_fg = Style::new().fg(Green);
@@ -47,11 +47,11 @@ pub fn print_diff(cs: &Changeset) -> std::io::Result<()> {
 
 #[macro_export]
 macro_rules! assert_diff {
-    ($orig:expr, $edit:expr) => ({
+    ($orig:expr, $edit:expr) => {{
         assert_diff!($orig, $edit, "\n", 0)
-    });
+    }};
 
-    ($orig:expr, $edit:expr, $split:expr, $expected:expr) => ({
+    ($orig:expr, $edit:expr, $split:expr, $expected:expr) => {{
         let orig = $orig;
         let edit = $edit;
 
@@ -60,9 +60,11 @@ macro_rules! assert_diff {
             if let Err(e) = $crate::diff::print_diff(&changeset) {
                 eprintln!("{}", e);
             }
-            panic!("assertion failed: edit distance was {}, not {}, see diff above",
-                   changeset.distance,
-                   &($expected))
+            panic!(
+                "assertion failed: edit distance was {}, not {}, see diff above",
+                changeset.distance,
+                &($expected)
+            )
         }
-    })
+    }};
 }

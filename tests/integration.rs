@@ -2,7 +2,7 @@ extern crate prose;
 
 mod diff;
 
-use prose::{Reformatter, FormatOpts};
+use prose::{FormatOpts, Reformatter};
 
 #[test]
 fn test_blank_string() {
@@ -26,9 +26,11 @@ fn test_widths() {
 
 #[test]
 fn test_aggressive_fit() {
-    let opts = FormatOpts { max_length: 50,
-                            reduce_jaggedness: true,
-                            ..Default::default()};
+    let opts = FormatOpts {
+        max_length: 50,
+        reduce_jaggedness: true,
+        ..Default::default()
+    };
     let data = include_str!("data/inputs/plain_indented.txt");
     let reformatter = Reformatter::new(&opts, data);
     let mut actual = reformatter.reformatted();
@@ -39,8 +41,10 @@ fn test_aggressive_fit() {
 
 #[test]
 fn test_email_quoting() {
-    let opts = FormatOpts { max_length: 40,
-                            ..Default::default()};
+    let opts = FormatOpts {
+        max_length: 40,
+        ..Default::default()
+    };
     let data = include_str!("data/inputs/email.txt");
     let reformatter = Reformatter::new(&opts, data);
     let mut actual = reformatter.reformatted();
