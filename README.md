@@ -10,10 +10,6 @@ A CLI utility to reformat text.
 aims to be similar, albeit with fewer features, while also being
 Unicode-aware.
 
-## Planned but not yet implemented
-
-- nested quoted email formatting
-
 ## License
 
 Licensed under either of:
