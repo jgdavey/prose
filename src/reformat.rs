@@ -120,8 +120,6 @@ fn collect_blocks(char_slices: &[Vec<char>], prefix: Vec<char>, suffix: Vec<char
     let prefixstr: String = prefix.iter().collect();
     let suffixstr: String = suffix.iter().collect();
 
-    eprintln!("prefix: {}, suffix: {}", prefixstr, suffixstr);
-
     let mut blocks: Vec<Block> = vec![];
     let mut words: Vec<String> = vec![];
     let mut indentation = 0;
