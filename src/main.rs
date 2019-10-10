@@ -1,5 +1,5 @@
-use std::io::{self, BufRead, StdinLock};
-
+use std::fs;
+use std::io::{self, BufReader, BufRead};
 mod reformat;
 use clap::{App, Arg};
 use reformat::{reformat, FormatOpts};
@@ -22,7 +22,7 @@ fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
     }
 }
 
-fn process_paragraphs(io: &mut StdinLock, opts: FormatOpts) -> io::Result<()> {
+fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::Result<()> {
     let mut buf = vec![];
     for line in io.lines() {
         let l = line?;
@@ -38,7 +38,7 @@ fn process_paragraphs(io: &mut StdinLock, opts: FormatOpts) -> io::Result<()> {
     Ok(())
 }
 
-fn matches_to_format_opts(matches: clap::ArgMatches) -> FormatOpts {
+fn matches_to_format_opts(matches: &clap::ArgMatches) -> FormatOpts {
     let width: usize = matches
         .value_of("width")
         .unwrap()
@@ -57,6 +57,14 @@ fn matches_to_format_opts(matches: clap::ArgMatches) -> FormatOpts {
         last_line,
         reduce_jaggedness,
         tab_width,
+    }
+}
+
+fn get_reader(input: &str) -> io::Result<Box<dyn BufRead>> {
+    if input == "-" {
+        Ok(Box::new(BufReader::new(io::stdin())))
+    } else {
+        Ok(Box::new(BufReader::new(fs::File::open(input)?)))
     }
 }
 
@@ -87,12 +95,24 @@ fn main() {
              .default_value("4")
              .help("Number of spaces to expand tab characters to")
              .takes_value(true))
+        .arg(Arg::with_name("FILE")
+             .help("Operate on file FILE (Use '-' for stdin)")
+             .required(false)
+             .index(1))
         .get_matches();
 
-    let opts = matches_to_format_opts(matches);
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    if let Err(err) = process_paragraphs(&mut handle, opts) {
-        eprintln!("{}", err)
+    let input = matches.value_of("FILE").unwrap_or("-");
+    let opts = matches_to_format_opts(&matches);
+    match get_reader(input) {
+        Ok(mut rdr) => {
+            if let Err(err) = process_paragraphs(&mut rdr, opts) {
+                eprintln!("{}", err);
+                ::std::process::exit(2);
+            }
+        },
+        Err(e) => {
+            eprintln!("Error opening {}: {}", input, e);
+            ::std::process::exit(1);
+        }
     }
 }
