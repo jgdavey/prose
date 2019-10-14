@@ -73,34 +73,27 @@ enum Dir {
 }
 
 fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
-    let get = |s: &[char], i| match dir {
-        Dir::Forward => s[i],
-        Dir::Reverse => s[s.len() - i - 1],
-    };
-
     if char_slices.is_empty() {
         return vec![];
     }
     let mut ret = Vec::new();
     let mut i = 0;
-    loop {
+    'outer: loop {
         let mut c = None;
         for s in char_slices {
             if i == s.len() {
-                if let Dir::Reverse = dir {
-                    ret.reverse();
-                }
-                return ret;
+                break 'outer;
             }
+            let j = match dir {
+                Dir::Forward => i,
+                Dir::Reverse => s.len() - i - 1,
+            };
             match c {
                 None => {
-                    c = Some(get(s, i));
+                    c = Some(s[j]);
                 }
-                Some(letter) if letter != get(s, i) => {
-                    if let Dir::Reverse = dir {
-                        ret.reverse();
-                    }
-                    return ret;
+                Some(letter) if letter != s[j] => {
+                    break 'outer;
                 }
                 _ => continue,
             }
@@ -110,6 +103,10 @@ fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
         }
         i += 1;
     }
+    if let Dir::Reverse = dir {
+        ret.reverse();
+    }
+    ret
 }
 
 fn spaces(n: usize) -> String {
