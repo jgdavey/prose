@@ -1,5 +1,6 @@
 use pathfinding::prelude::dijkstra;
 use unicode_width::UnicodeWidthStr;
+use itertools::Itertools;
 
 pub struct FormatOpts {
     pub max_length: usize,
@@ -72,9 +73,9 @@ enum Dir {
     Reverse,
 }
 
-fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
+fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> String {
     if char_slices.is_empty() {
-        return vec![];
+        return String::from("");
     }
     let mut ret = Vec::new();
     let mut i = 0;
@@ -106,108 +107,80 @@ fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> Vec<char> {
     if let Dir::Reverse = dir {
         ret.reverse();
     }
-    ret
+    ret.iter().collect()
 }
 
 fn spaces(n: usize) -> String {
     std::iter::repeat(" ").take(n).collect::<String>()
 }
 
-fn collect_blocks(char_slices: &[Vec<char>], prefix: Vec<char>, suffix: Vec<char>) -> Vec<Block> {
-    let prefixstr: String = prefix.iter().collect();
-    let suffixstr: String = suffix.iter().collect();
-
-    let mut blocks: Vec<Block> = vec![];
-    let mut words: Vec<String> = vec![];
-    let mut indentation = 0;
-    for (i, line) in char_slices.iter().enumerate() {
-        let len = line.len();
-        let trimmed = &line[std::cmp::min(prefix.len(), len)..(len - suffix.len())];
-        let mut word = String::new();
-        let mut found_non_blank = false;
-        for c in trimmed {
-            if c.is_whitespace() {
-                if !word.is_empty() {
-                    words.push(word);
-                    word = String::new();
-                }
-                if words.is_empty() && i == 0 {
-                    indentation += 1;
-                }
-            } else {
-                found_non_blank = true;
-                word.push(*c);
-            }
-        }
-        if !word.is_empty() {
-            words.push(word);
-        } else if !found_non_blank {
-            if !words.is_empty() {
-                let mut s = spaces(indentation);
-                s.push_str(&words[0]);
-                words[0] = s;
-            }
-            blocks.push(Block {
-                prefix: prefixstr.clone(),
-                suffix: suffixstr.clone(),
-                words,
-                newline_after: true,
-            });
-            words = vec![];
-            indentation = 0;
-        }
+fn trim_off<'a>(s: &'a str, prefix: &str, suffix: &str) -> &'a str {
+    if s.len() < prefix.len() {
+        ""
+    } else {
+        s.trim_start_matches(prefix).trim_end_matches(suffix)
     }
-    if !words.is_empty() {
-        let mut s = spaces(indentation);
-        s.push_str(&words[0]);
-        words[0] = s;
+}
 
+fn collect_blocks(lines: &[&str], prefix: &str, suffix: &str) -> Vec<Block> {
+    let mut blocks: Vec<Block> = vec![];
+    let groups = lines.iter()
+        .map(|s| trim_off(s, prefix, suffix))
+        .group_by(|l| l.trim().is_empty());
+    for (_, line_group) in &groups {
+        let mut words = vec![];
+        let mut newline_after = false;
+        for (i, line) in line_group.enumerate() {
+            if line.trim().is_empty() {
+                newline_after = true;
+                continue;
+            }
+            let mut w: Vec<_> = line.split_whitespace().map(|w| w.to_string()).collect();
+            if i == 0 {
+                let indentation = line.chars().take_while(|&c| c.is_whitespace()).count();
+                let mut s = spaces(indentation);
+                s.push_str(&w[0]);
+                w[0] = s;
+            }
+            words.extend(w);
+        }
         blocks.push(Block {
-            prefix: prefixstr,
-            suffix: suffixstr,
+            prefix: prefix.to_string(),
+            suffix: suffix.to_string(),
             words,
-            newline_after: false,
+            newline_after,
         });
     }
     blocks
 }
 
-fn is_quote_char(c: &char) -> bool {
-    c.is_whitespace() || c == &'>'
-}
-
-fn is_not_quote_char(c: &char) -> bool {
-    !is_quote_char(c)
-}
-
-fn get_quotes(chars: &[char]) -> (usize, Vec<char>) {
-    let quote_chars = chars.splitn(2, is_not_quote_char).next().unwrap();
-    let quote_vec: Vec<_> = quote_chars.to_vec();
-    if quote_vec.is_empty() {
-        (0, vec![])
+fn get_quotes(line: &str) -> (usize, &str) {
+    let quote_chars = line.splitn(2, |c: char| !(c.is_whitespace() || c == '>')).next().unwrap();
+    if quote_chars.is_empty() {
+        (0, "")
     } else {
-        let l = quote_vec.iter().filter(|&c| *c == '>').count();
-        (l, quote_vec)
+        let l = quote_chars.chars().filter(|&c| c == '>').count();
+        (l, quote_chars)
     }
 }
 
-fn analyze_quotes(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
-    let quotes: Vec<_> = char_slices
+fn analyze_quotes(lines: &[&str]) -> Option<Vec<Block>> {
+    let quotes: Vec<_> = lines
         .iter()
-        .map(|c| get_quotes(c.as_slice()))
+        .map(|line| get_quotes(line))
         .collect();
     if quotes.iter().any(|&(l, _)| l > 0) {
         let mut blocks = vec![];
-        let mut quote = &(0, vec![]);
+        let mut quote = &(0, "");
         let mut i = 0;
         let mut idx = 0;
         for this_quote in quotes.iter() {
             if quotes[i].0 != quote.0 {
                 if idx < i {
                     blocks.extend(collect_blocks(
-                        &char_slices[idx..i],
-                        quote.1.clone(),
-                        vec![],
+                        &lines[idx..i],
+                        &quote.1,
+                        "",
                     ));
                 }
                 quote = this_quote;
@@ -217,9 +190,9 @@ fn analyze_quotes(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
         }
         if idx < i {
             blocks.extend(collect_blocks(
-                &char_slices[idx..i],
+                &lines[idx..i],
                 quote.1.clone(),
-                vec![],
+                "",
             ));
         }
         Some(blocks)
@@ -228,24 +201,25 @@ fn analyze_quotes(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
     }
 }
 
-fn analyze_surround(char_slices: &[Vec<char>]) -> Option<Vec<Block>> {
-    let mut prefix = longest_common_affix(char_slices, Dir::Forward);
-    let mut suffix = longest_common_affix(char_slices, Dir::Reverse);
-
-    if prefix == suffix && !prefix.is_empty() {
-        prefix = vec![];
-        suffix = vec![];
-    }
-
-    Some(collect_blocks(char_slices, prefix, suffix))
-}
-
-fn analyze(lines: &[&str]) -> Vec<Block> {
-    let charlines = lines
+fn analyze_surround(lines: &[&str]) -> Option<Vec<Block>> {
+    let char_slices = lines
         .iter()
         .map(|l| l.chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
-    let blocks = analyze_quotes(&charlines[..]).or_else(|| analyze_surround(&charlines[..]));
+
+    let mut prefix = longest_common_affix(&char_slices[..], Dir::Forward);
+    let mut suffix = longest_common_affix(&char_slices[..], Dir::Reverse);
+
+    if prefix == suffix && !prefix.is_empty() {
+        prefix = String::from("");
+        suffix = String::from("");
+    }
+
+    Some(collect_blocks(lines, &prefix, &suffix))
+}
+
+fn analyze(lines: &[&str]) -> Vec<Block> {
+    let blocks = analyze_quotes(lines).or_else(|| analyze_surround(lines));
     blocks.unwrap()
 }
 
