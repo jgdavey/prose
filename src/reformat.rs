@@ -73,15 +73,15 @@ enum Dir {
     Reverse,
 }
 
-fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> String {
-    if char_slices.is_empty() {
+fn longest_common_affix(lines: &[&str], dir: Dir) -> String {
+    if lines.is_empty() {
         return String::from("");
     }
     let mut ret = Vec::new();
     let mut i = 0;
     'outer: loop {
         let mut c = None;
-        for s in char_slices {
+        for s in lines.iter().map(|s| s.as_bytes()) {
             if i == s.len() {
                 break 'outer;
             }
@@ -107,7 +107,7 @@ fn longest_common_affix(char_slices: &[Vec<char>], dir: Dir) -> String {
     if let Dir::Reverse = dir {
         ret.reverse();
     }
-    ret.iter().collect()
+    String::from_utf8(ret).expect("Illegal UTF-8 sequence")
 }
 
 fn spaces(n: usize) -> String {
@@ -202,13 +202,8 @@ fn analyze_quotes(lines: &[&str]) -> Option<Vec<Block>> {
 }
 
 fn analyze_surround(lines: &[&str]) -> Option<Vec<Block>> {
-    let char_slices = lines
-        .iter()
-        .map(|l| l.chars().collect::<Vec<_>>())
-        .collect::<Vec<_>>();
-
-    let mut prefix = longest_common_affix(&char_slices[..], Dir::Forward);
-    let mut suffix = longest_common_affix(&char_slices[..], Dir::Reverse);
+    let mut prefix = longest_common_affix(lines, Dir::Forward);
+    let mut suffix = longest_common_affix(lines, Dir::Reverse);
 
     if prefix == suffix && !prefix.is_empty() {
         prefix = String::from("");
