@@ -107,7 +107,8 @@ fn longest_common_affix(lines: &[&str], dir: Dir) -> String {
     if let Dir::Reverse = dir {
         ret.reverse();
     }
-    String::from_utf8(ret).expect("Illegal UTF-8 sequence")
+    // For now, just return empty prefix/suffix if it can't be converted back to UTF-8
+    String::from_utf8(ret).unwrap_or(String::from(""))
 }
 
 fn spaces(n: usize) -> String {
