@@ -54,6 +54,20 @@ fn test_email_quoting() {
 }
 
 #[test]
+fn test_tab_expansion() {
+    let opts = FormatOpts {
+        max_length: 40,
+        ..Default::default()
+    };
+    let data = include_str!("data/inputs/tabs.txt");
+    let reformatter = Reformatter::new(&opts, data);
+    let mut actual = reformatter.reformatted();
+    actual.push_str("\n"); // usually by virtue of println
+    let expected = include_str!("data/outputs/tabs_40.txt");
+    assert_diff!(expected, &actual);
+}
+
+#[test]
 fn test_utf8_with_prefixes() {
     let opts = FormatOpts {
         max_length: 40,

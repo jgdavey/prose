@@ -119,7 +119,7 @@ fn trim_off<'a>(s: &'a str, prefix: &str, suffix: &str) -> &'a str {
     if s.len() < prefix.len() {
         ""
     } else {
-        s.trim_start_matches(prefix).trim_end_matches(suffix)
+        &s[prefix.len()..(s.len() - suffix.len())]
     }
 }
 
