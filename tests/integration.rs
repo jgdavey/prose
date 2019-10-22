@@ -2,14 +2,13 @@ extern crate prose;
 
 mod diff;
 
-use prose::{FormatOpts, Reformatter};
+use prose::{FormatOpts};
 
 #[test]
 fn test_blank_string() {
     let opts = FormatOpts::default();
     let data = "";
-    let reformatter = Reformatter::new(&opts, data);
-    let result = reformatter.reformatted();
+    let result = prose::reformat(&opts, data);
     assert_eq!(result, "");
 }
 
@@ -17,8 +16,7 @@ fn test_blank_string() {
 fn test_widths() {
     let opts = FormatOpts::with_max_length(40);
     let data = include_str!("data/inputs/comments.txt");
-    let reformatter = Reformatter::new(&opts, data);
-    let mut actual = reformatter.reformatted();
+    let mut actual = prose::reformat(&opts, data);
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/comments_40.txt");
     assert_diff!(expected, &actual);
@@ -32,8 +30,7 @@ fn test_aggressive_fit() {
         ..Default::default()
     };
     let data = include_str!("data/inputs/plain_indented.txt");
-    let reformatter = Reformatter::new(&opts, data);
-    let mut actual = reformatter.reformatted();
+    let mut actual = prose::reformat(&opts, data);
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/plain_indented_50_f.txt");
     assert_diff!(expected, &actual);
@@ -46,8 +43,7 @@ fn test_email_quoting() {
         ..Default::default()
     };
     let data = include_str!("data/inputs/email.txt");
-    let reformatter = Reformatter::new(&opts, data);
-    let mut actual = reformatter.reformatted();
+    let mut actual = prose::reformat(&opts, data);
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/email_40.txt");
     assert_diff!(expected, &actual);
@@ -60,8 +56,7 @@ fn test_tab_expansion() {
         ..Default::default()
     };
     let data = include_str!("data/inputs/tabs.txt");
-    let reformatter = Reformatter::new(&opts, data);
-    let mut actual = reformatter.reformatted();
+    let mut actual = prose::reformat::reformat(&opts, data);
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/tabs_40.txt");
     assert_diff!(expected, &actual);
@@ -74,8 +69,7 @@ fn test_utf8_with_prefixes() {
         ..Default::default()
     };
     let data = include_str!("data/inputs/greek.txt");
-    let reformatter = Reformatter::new(&opts, data);
-    let mut actual = reformatter.reformatted();
+    let mut actual = prose::reformat::reformat(&opts, data);
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/greek_40.txt");
     assert_diff!(expected, &actual);
