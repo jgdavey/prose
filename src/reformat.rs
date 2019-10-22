@@ -61,10 +61,10 @@ impl Width for &str {
 }
 
 #[derive(Debug)]
-struct Block {
+struct Block<'a> {
     prefix: String,
     suffix: String,
-    words: Vec<String>,
+    words: Vec<&'a str>,
     newline_after: bool,
 }
 
@@ -123,7 +123,7 @@ fn trim_off<'a>(s: &'a str, prefix: &str, suffix: &str) -> &'a str {
     }
 }
 
-fn collect_blocks(lines: &[&str], prefix: &str, suffix: &str) -> Vec<Block> {
+fn collect_blocks<'a>(lines: &[&'a str], prefix: &str, suffix: &str) -> Vec<Block<'a>> {
     let mut blocks: Vec<Block> = vec![];
     let groups = lines.iter()
         .map(|s| trim_off(s, prefix, suffix))
@@ -136,12 +136,11 @@ fn collect_blocks(lines: &[&str], prefix: &str, suffix: &str) -> Vec<Block> {
                 newline_after = true;
                 continue;
             }
-            let mut w: Vec<_> = line.split_whitespace().map(|w| w.to_string()).collect();
+            let mut w: Vec<_> = line.split_whitespace().collect();
             if i == 0 {
                 let indentation = line.chars().take_while(|&c| c.is_whitespace()).count();
-                let mut s = spaces(indentation);
-                s.push_str(&w[0]);
-                w[0] = s;
+                let len = w[0].len();
+                w[0] = &line[0..(len + indentation)];
             }
             words.extend(w);
         }
@@ -165,7 +164,7 @@ fn get_quotes(line: &str) -> (usize, &str) {
     }
 }
 
-fn analyze_quotes(lines: &[&str]) -> Option<Vec<Block>> {
+fn analyze_quotes<'a>(lines: &[&'a str]) -> Option<Vec<Block<'a>>> {
     let quotes: Vec<_> = lines
         .iter()
         .map(|line| get_quotes(line))
@@ -202,7 +201,7 @@ fn analyze_quotes(lines: &[&str]) -> Option<Vec<Block>> {
     }
 }
 
-fn analyze_surround(lines: &[&str]) -> Option<Vec<Block>> {
+fn analyze_surround<'a>(lines: &[&'a str]) -> Option<Vec<Block<'a>>> {
     let mut prefix = longest_common_affix(lines, Dir::Forward);
     let mut suffix = longest_common_affix(lines, Dir::Reverse);
 
@@ -214,7 +213,7 @@ fn analyze_surround(lines: &[&str]) -> Option<Vec<Block>> {
     Some(collect_blocks(lines, &prefix, &suffix))
 }
 
-fn analyze(lines: &[&str]) -> Vec<Block> {
+fn analyze<'a>(lines: &[&'a str]) -> Vec<Block<'a>> {
     let blocks = analyze_quotes(lines).or_else(|| analyze_surround(lines));
     blocks.unwrap()
 }
@@ -232,18 +231,16 @@ impl Entry {
 }
 
 #[derive(Default)]
-pub struct Reformatter {
-    blocks: Vec<Block>,
+pub struct Reformatter<'a> {
+    blocks: Vec<Block<'a>>,
     target: usize,
     last_line: bool,
     fit: bool,
 }
 
-impl Reformatter {
-    pub fn new(opts: &FormatOpts, data: &str) -> Self {
-        let expanded = spaces(opts.tab_width);
-        let data = data.replace("\t", &expanded);
-        let input_lines: Vec<_> = data.lines().collect();
+impl<'a> Reformatter<'a> {
+    pub fn new(opts: &FormatOpts, input: &'a str) -> Reformatter<'a> {
+        let input_lines: Vec<_> = input.lines().collect();
         let blocks = analyze(&input_lines);
         // eprintln!("Prefix: {}, Suffix: {}, Max: {}, Target: {}", prefix, suffix, opts.max_length, target);
         Reformatter {
@@ -288,7 +285,7 @@ impl Reformatter {
         results
     }
 
-    fn solve(&self, words: &[String], target: usize) -> (Vec<usize>, u64) {
+    fn solve(&self, words: &[&str], target: usize) -> (Vec<usize>, u64) {
         let count = words.len();
         let dummy = Entry::new(0, 0);
 
@@ -400,7 +397,9 @@ impl Reformatter {
     }
 }
 
-pub fn reformat(opts: &FormatOpts, data: &str) -> String {
-    let rfmt = Reformatter::new(opts, data);
+pub fn reformat(opts: &FormatOpts, input: &str) -> String {
+    let expanded = spaces(opts.tab_width);
+    let data = input.replace("\t", &expanded).to_string();
+    let rfmt = Reformatter::new(opts, data.as_str());
     rfmt.reformatted()
 }
