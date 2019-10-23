@@ -13,11 +13,11 @@ DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
     provider: releases
     api_key:
       secure: dQhIg6u9QKak7lDkyhX1Rw6aAy1/A1M/Md9fYGzCBM468v+rXqY22fDPpG2hzqLQc9uT/nl5Z2UFP/l8PHN+zW3AlLRLu1PQfztSoGpIxKg+RLHu/oxQzj/l+6NVWYqz2+Y1nkiEMpx2/2fjwptqja8pF6OBKcxdQG1513oNc14aS4IfPTDuLTytaMVxL7KPdm2wjr+yCHlYRA7SFDwnUcrN1Y8IRjOutbcOaxn/cUWrrVIJ8boG7Q8hFUd8asXfRhuNO6llBrHSUfzIjSkVHtTSip3DvhIRAvcAJkG+n1Lqqj7JqLZ9+gu3GamfepMT+rpAuSq9yl4ByaL8NIDrHWmk03mPqSneBBdNRSxv/vO9hZWhufFQSRVrDCxTGO1hRtZ9GgYSbHcahfier4yo/JAkm7R/9Tm2K6aJeJGgcOk1rdjZeVT3/O2tLwOD/Bt0WK15TNezh7JRabReIC9Fpjk6bemdOQ9i3hJkLIzBR1OERXsinL5OI5XrzdnoKxDHYLvQvzxMhYYGY9HBTXz0XS2AM6v4E37UOMrtsDjN/7JUXdA2h8ixYGX+4TUNRUfUyYhWezkTtGks2ZT95+TMlHCrGuEIJpncaokr5grA14es3g3myZeKp09LaqM2jEAdeGR1KtyV8jGJMEvea5IWtVQoNs/cMzOY3Vkj+/r/1I4=
-      file: $ARTIFACT.tar.gz
-      skip_cleanup: true
-      on:
-        branch: master
-        tags: true
+    file: $ARTIFACT.tar.gz
+    skip_cleanup: true
+    on:
+      branch: master
+      tags: true
 
 matrix:
   include:
