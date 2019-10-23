@@ -1,6 +1,6 @@
+use itertools::Itertools;
 use pathfinding::prelude::dijkstra;
 use unicode_width::UnicodeWidthStr;
-use itertools::Itertools;
 
 pub struct FormatOpts {
     pub max_length: usize,
@@ -125,7 +125,8 @@ fn trim_off<'a>(s: &'a str, prefix: &str, suffix: &str) -> &'a str {
 
 fn collect_blocks<'a>(lines: &[&'a str], prefix: &str, suffix: &str) -> Vec<Block<'a>> {
     let mut blocks: Vec<Block> = vec![];
-    let groups = lines.iter()
+    let groups = lines
+        .iter()
         .map(|s| trim_off(s, prefix, suffix))
         .group_by(|l| l.trim().is_empty());
     for (_, line_group) in &groups {
@@ -155,7 +156,10 @@ fn collect_blocks<'a>(lines: &[&'a str], prefix: &str, suffix: &str) -> Vec<Bloc
 }
 
 fn get_quotes(line: &str) -> (usize, &str) {
-    let quote_chars = line.splitn(2, |c: char| !(c.is_whitespace() || c == '>')).next().unwrap();
+    let quote_chars = line
+        .splitn(2, |c: char| !(c.is_whitespace() || c == '>'))
+        .next()
+        .unwrap();
     if quote_chars.is_empty() {
         (0, "")
     } else {
@@ -165,10 +169,7 @@ fn get_quotes(line: &str) -> (usize, &str) {
 }
 
 fn analyze_quotes<'a>(lines: &[&'a str]) -> Option<Vec<Block<'a>>> {
-    let quotes: Vec<_> = lines
-        .iter()
-        .map(|line| get_quotes(line))
-        .collect();
+    let quotes: Vec<_> = lines.iter().map(|line| get_quotes(line)).collect();
     if quotes.iter().any(|&(l, _)| l > 0) {
         let mut blocks = vec![];
         let mut quote = &(0, "");
@@ -177,11 +178,7 @@ fn analyze_quotes<'a>(lines: &[&'a str]) -> Option<Vec<Block<'a>>> {
         for this_quote in quotes.iter() {
             if quotes[i].0 != quote.0 {
                 if idx < i {
-                    blocks.extend(collect_blocks(
-                        &lines[idx..i],
-                        &quote.1,
-                        "",
-                    ));
+                    blocks.extend(collect_blocks(&lines[idx..i], &quote.1, ""));
                 }
                 quote = this_quote;
                 idx = i;
@@ -189,11 +186,7 @@ fn analyze_quotes<'a>(lines: &[&'a str]) -> Option<Vec<Block<'a>>> {
             i += 1;
         }
         if idx < i {
-            blocks.extend(collect_blocks(
-                &lines[idx..i],
-                quote.1.clone(),
-                "",
-            ));
+            blocks.extend(collect_blocks(&lines[idx..i], quote.1.clone(), ""));
         }
         Some(blocks)
     } else {

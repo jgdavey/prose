@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{self, BufReader, BufRead};
+use std::io::{self, BufRead, BufReader};
 mod reformat;
 use clap::{App, Arg};
 use reformat::{reformat, FormatOpts};
@@ -97,7 +97,7 @@ fn main() {
                 eprintln!("{}", err);
                 ::std::process::exit(2);
             }
-        },
+        }
         Err(e) => {
             eprintln!("Error opening {}: {}", input, e);
             ::std::process::exit(1);

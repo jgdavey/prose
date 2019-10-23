@@ -2,7 +2,7 @@ extern crate prose;
 
 mod diff;
 
-use prose::{FormatOpts};
+use prose::FormatOpts;
 
 #[test]
 fn test_blank_string() {
@@ -73,5 +73,4 @@ fn test_utf8_with_prefixes() {
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/greek_40.txt");
     assert_diff!(expected, &actual);
-
 }
