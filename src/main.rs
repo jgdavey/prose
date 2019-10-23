@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate clap;
+
 use std::fs;
 use std::io::{self, BufRead, BufReader};
 mod reformat;
@@ -58,7 +61,7 @@ fn get_reader(input: &str) -> io::Result<Box<dyn BufRead>> {
 
 fn main() {
     let matches = App::new("prose")
-        .version("0.1")
+        .version(crate_version!())
         .about("Reformats prose to specified width")
         .arg(Arg::with_name("width")
              .short("w")
