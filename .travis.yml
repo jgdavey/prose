@@ -21,12 +21,12 @@ DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
 
 matrix:
   include:
-  - name: Linux Tests
+  - name: Linux (gnu)
     os: linux
     rust: stable
     env: TARGET=x86_64-unknown-linux-gnu
     <<: *DEPLOY_TO_GITHUB
-  - name: Linux (musl) tests
+  - name: Linux (musl)
     os: linux
     rust: stable
     env: TARGET=x86_64-unknown-linux-musl
@@ -35,12 +35,14 @@ matrix:
         packages:
           - musl-tools
     <<: *DEPLOY_TO_GITHUB
-  - os: osx
+  - name: macOS
+    os: osx
     rust: stable
     env: TARGET=x86_64-apple-darwin
     install: true
     <<: *DEPLOY_TO_GITHUB
-  - os: windows
+  - name: Windows
+    os: windows
     rust: stable
     env: TARGET=x86_64-pc-windows-msvc
     <<: *DEPLOY_TO_GITHUB
