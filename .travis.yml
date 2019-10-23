@@ -57,6 +57,9 @@ install:
 script:
 - cargo build --target $TARGET --verbose
 - cargo test --target $TARGET
+jobs:
+  allow_failures:
+    - os: windows
 notifications:
   email:
     on_success: never
