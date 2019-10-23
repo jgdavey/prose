@@ -45,6 +45,7 @@ matrix:
     os: windows
     rust: stable
     env: TARGET=x86_64-pc-windows-msvc
+    script: cargo build --target $TARGET --verbose
     <<: *DEPLOY_TO_GITHUB
 env:
   global:
