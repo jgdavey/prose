@@ -406,8 +406,12 @@ impl<'a> Reformatter<'a> {
 }
 
 pub fn reformat(opts: &FormatOpts, input: &str) -> String {
-    let expanded = spaces(opts.tab_width);
-    let data = input.replace("\t", &expanded);
-    let rfmt = Reformatter::new(opts, data.as_str());
+    let cleaned_input = if let Some(_) = input.find("\t") {
+        let expanded = spaces(opts.tab_width);
+        Cow::Owned(input.replace("\t", &expanded))
+    } else {
+        Cow::Borrowed(input)
+    };
+    let rfmt = Reformatter::new(opts, &cleaned_input);
     rfmt.reformatted()
 }

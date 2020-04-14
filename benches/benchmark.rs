@@ -19,6 +19,11 @@ fn bench_reformatting(c: &mut Criterion) {
 
         b.iter(|| reformatter.reformatted());
     });
+    c.bench_function("API", |b| {
+        let data = include_str!("../tests/data/inputs/plain.txt");
+        let opts = FormatOpts::with_max_length(40);
+        b.iter(|| prose::reformat(&opts, black_box(data)));
+    });
 }
 
 criterion_group!(benches, bench_reformatting);
