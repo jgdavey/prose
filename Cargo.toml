@@ -18,7 +18,7 @@ itertools = "0.8"
 
 [dev-dependencies]
 difference = "2.0"
-criterion = "0.2"
+criterion = "0.3.3"
 
 [[bench]]
 name = "benchmark"
