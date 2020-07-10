@@ -13,6 +13,14 @@ fn test_blank_string() {
 }
 
 #[test]
+fn test_one_line() {
+    let opts = FormatOpts::with_max_length(25);
+    let data = "Lot's of string data... to be reformatted";
+    let actual = prose::reformat(&opts, data);
+    assert_eq!(actual, "Lot's of string data...\nto be reformatted");
+}
+
+#[test]
 fn test_widths() {
     let opts = FormatOpts::with_max_length(40);
     let data = include_str!("data/inputs/comments.txt");

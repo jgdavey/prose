@@ -64,8 +64,8 @@ impl<'a> Width for Token<'a> {
 
 #[derive(Debug)]
 struct Block<'a> {
-    prefix: String,
-    suffix: String,
+    prefix: &'a str,
+    suffix: &'a str,
     words: Vec<Token<'a>>,
     newline_after: bool,
 }
@@ -101,11 +101,11 @@ fn get_quotes(line: &str) -> (usize, &str) {
     }
 }
 
-fn collect_blocks<'a>(lines: &[&'a str], prefix: &str, suffix: &str) -> Vec<Block<'a>> {
+fn collect_blocks<'a>(lines: &[&'a str], prefix: &'a str, suffix: &'a str) -> Vec<Block<'a>> {
     let mut blocks: Vec<Block> = vec![];
     let groups = lines
         .iter()
-        .map(|s| trim_off(s, prefix, suffix))
+        .map(|s| trim_off(s, &prefix, &suffix))
         .group_by(|l| l.trim().is_empty());
     for (_, line_group) in &groups {
         let mut words = vec![];
@@ -124,8 +124,8 @@ fn collect_blocks<'a>(lines: &[&'a str], prefix: &str, suffix: &str) -> Vec<Bloc
             words.extend(w);
         }
         blocks.push(Block {
-            prefix: prefix.to_string(),
-            suffix: suffix.to_string(),
+            prefix,
+            suffix,
             words: words.iter().map(|w| Token::Borrowed(*w)).collect(),
             newline_after,
         });
@@ -139,41 +139,40 @@ struct Input<'a> {
 }
 
 impl<'a> Input<'a> {
-    fn longest_common_affix(&self, dir: Dir) -> String {
+    fn longest_common_affix(&self, dir: Dir) -> &'a str {
         if self.lines.is_empty() {
-            return String::from("");
+            return "";
         }
-        let mut ret = Vec::new();
+        let mut ret = None;
         let mut i = 0;
         'outer: loop {
-            let mut c = None;
-            for s in self.lines.iter().map(|s| s.as_bytes()) {
-                if i == s.len() {
+            let mut range = None;
+            for s in self.lines.iter() {
+                if i >= s.len() {
                     break 'outer;
                 }
-                let j = match dir {
-                    Dir::Forward => i,
-                    Dir::Reverse => s.len() - i - 1,
+                let (start, finish) = match dir {
+                    Dir::Forward => (0, i + 1),
+                    Dir::Reverse => ((s.len() - i - 1), s.len()),
                 };
-                match c {
+                if !s.is_char_boundary(start) || !s.is_char_boundary(finish) {
+                    i += 1;
+                    continue 'outer;
+                }
+                match range {
                     None => {
-                        c = Some(s[j]);
+                        range = Some(&s[start..finish]);
                     }
-                    Some(letter) if letter != s[j] => {
+                    Some(prev) if prev != &s[start..finish] => {
                         break 'outer;
                     }
                     _ => continue,
                 }
             }
-            if let Some(letter) = c {
-                ret.push(letter);
-            }
+            ret = range;
             i += 1;
         }
-        if let Dir::Reverse = dir {
-            ret.reverse();
-        }
-        String::from_utf8(ret).unwrap_or_else(|_| String::from(""))
+        ret.unwrap_or("")
     }
 
     fn analyze_quotes(&self) -> Option<Vec<Block<'a>>> {
@@ -186,7 +185,7 @@ impl<'a> Input<'a> {
             for this_quote in quotes.iter() {
                 if quotes[i].0 != quote.0 {
                     if idx < i {
-                        blocks.extend(collect_blocks(&self.lines[idx..i], quote.1.to_string().as_str(), ""));
+                        blocks.extend(collect_blocks(&self.lines[idx..i], quote.1, ""));
                     }
                     quote = this_quote;
                     idx = i;
@@ -194,7 +193,7 @@ impl<'a> Input<'a> {
                 i += 1;
             }
             if idx < i {
-                blocks.extend(collect_blocks(&self.lines[idx..i], quote.1.to_string().as_str(), ""));
+                blocks.extend(collect_blocks(&self.lines[idx..i], quote.1, ""));
             }
             Some(blocks)
         } else {
@@ -207,11 +206,11 @@ impl<'a> Input<'a> {
         let mut suffix = self.longest_common_affix(Dir::Reverse);
 
         if prefix == suffix && !prefix.is_empty() {
-            prefix = String::from("");
-            suffix = String::from("");
+            prefix = "";
+            suffix = "";
         }
 
-        let collected = collect_blocks(&self.lines, &prefix, &suffix);
+        let collected = collect_blocks(&self.lines, prefix, suffix);
 
         Some(collected)
     }
@@ -353,7 +352,7 @@ impl<'a> Reformatter<'a> {
 
         for s in path.windows(2) {
             if let [start, end] = *s {
-                let mut l = block.prefix.clone();
+                let mut l = block.prefix.to_string();
                 l.push_str(
                     &words[start..end]
                         .iter()
