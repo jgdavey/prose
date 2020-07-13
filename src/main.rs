@@ -8,21 +8,7 @@ use clap::{App, Arg};
 use reformat::{reformat, FormatOpts};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
-    use pulldown_cmark::{Parser, Options, Event, Tag};
-
-    let input = buf.join("\n");
-
-    if opts.markdown {
-        let mut parser = Parser::new_ext(&input, Options::empty());
-        let pair = (parser.next(), parser.next());
-        if let (Some(Event::Start(Tag::Paragraph)), Some(Event::Text(_))) = pair {
-            println!("{}", reformat(&opts, &input));
-        } else {
-            println!("{}", input);
-        }
-    } else {
-        println!("{}", reformat(&opts, &input));
-    }
+    println!("{}", reformat(&opts, &buf.join("\n")));
 }
 
 fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::Result<()> {

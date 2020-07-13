@@ -409,12 +409,27 @@ impl<'a> Reformatter<'a> {
 }
 
 pub fn reformat(opts: &FormatOpts, input: &str) -> String {
-    let cleaned_input = if let Some(_) = input.find("\t") {
-        let expanded = spaces(opts.tab_width);
-        Cow::Owned(input.replace("\t", &expanded))
+    use pulldown_cmark::{Parser, Options, Event, Tag};
+
+    let do_reformat = if opts.markdown {
+        let mut parser = Parser::new_ext(&input, Options::empty());
+        let pair = (parser.next(), parser.next());
+        matches!(pair, (Some(Event::Start(Tag::Paragraph)), Some(Event::Text(_))))
     } else {
-        Cow::Borrowed(input)
+        true
     };
-    let rfmt = Reformatter::new(opts, &cleaned_input);
-    rfmt.reformatted()
+
+    if do_reformat {
+        let cleaned_input = if let Some(_) = input.find("\t") {
+            let expanded = spaces(opts.tab_width);
+            Cow::Owned(input.replace("\t", &expanded))
+        } else {
+            Cow::Borrowed(input)
+        };
+
+        let rfmt = Reformatter::new(opts, &cleaned_input);
+        rfmt.reformatted()
+    } else {
+        input.to_string()
+    }
 }

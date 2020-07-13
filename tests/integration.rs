@@ -82,3 +82,19 @@ fn test_utf8_with_prefixes() {
     let expected = include_str!("data/outputs/greek_40.txt");
     assert_diff!(expected, &actual);
 }
+
+#[test]
+fn test_markdown() {
+    let opts = FormatOpts {
+        max_length: 53,
+        markdown: true,
+        ..Default::default()
+    };
+    let data = include_str!("data/inputs/markdown.md");
+    let mut actual: String = data.split("\n\n").map(|s| {
+        prose::reformat::reformat(&opts, s)
+    }).collect::<Vec<_>>().join("\n\n");
+    actual.push_str("\n"); // usually by virtue of println
+    let expected = include_str!("data/outputs/markdown_53.md");
+    assert_diff!(expected, &actual);
+}
