@@ -8,8 +8,20 @@ use clap::{App, Arg};
 use reformat::{reformat, FormatOpts};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
-    if !buf.is_empty() {
-        println!("{}", reformat(&opts, &buf.join("\n")));
+    use pulldown_cmark::{Parser, Options, Event, Tag};
+
+    let input = buf.join("\n");
+
+    if opts.markdown {
+        let mut parser = Parser::new_ext(&input, Options::empty());
+        let pair = (parser.next(), parser.next());
+        if let (Some(Event::Start(Tag::Paragraph)), Some(Event::Text(_))) = pair {
+            println!("{}", reformat(&opts, &input));
+        } else {
+            println!("{}", input);
+        }
+    } else {
+        println!("{}", reformat(&opts, &input));
     }
 }
 
@@ -42,8 +54,10 @@ fn matches_to_format_opts(matches: &clap::ArgMatches) -> FormatOpts {
         .unwrap()
         .parse()
         .expect("Choose a positive number for tab width");
+    let markdown = matches.is_present("markdown");
 
     FormatOpts {
+        markdown,
         max_length: width,
         last_line,
         reduce_jaggedness,
@@ -86,6 +100,11 @@ fn main() {
              .default_value("4")
              .help("Number of spaces to expand tab characters to")
              .takes_value(true))
+        .arg(Arg::with_name("markdown")
+             .short("m")
+             .long("markdown")
+             .help("Parse as markdown rather than plain text")
+             .takes_value(false))
         .arg(Arg::with_name("FILE")
              .help("Operate on file FILE (Use '-' for stdin)")
              .required(false)

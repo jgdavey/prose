@@ -9,6 +9,7 @@ pub struct FormatOpts {
     pub tab_width: usize,
     pub last_line: bool,
     pub reduce_jaggedness: bool,
+    pub markdown: bool,
 }
 
 impl Default for FormatOpts {
@@ -17,6 +18,7 @@ impl Default for FormatOpts {
             max_length: 72,
             last_line: false,
             reduce_jaggedness: false,
+            markdown: false,
             tab_width: 4,
         }
     }
@@ -35,12 +37,14 @@ impl FormatOpts {
         max_length: usize,
         last_line: bool,
         reduce_jaggedness: bool,
+        markdown: bool,
         tab_width: usize,
     ) -> Self {
         Self {
             max_length,
             last_line,
             reduce_jaggedness,
+            markdown,
             tab_width,
         }
     }
