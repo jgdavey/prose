@@ -1,5 +1,6 @@
 #+TITLE: prose
 #+OPTIONS: toc:nil
+#+STARTUP: showall
 
 * prose
 
@@ -27,7 +28,7 @@ If you're a Rust programmer, prose can be installed with cargo. Note
 that the minimum supported version of Rust for prose is 1.38.0,
 although it may work with older versions.
 
-#+begin_src shell
+#+begin_src shell :eval never
 cargo install prose
 #+end_src
 
