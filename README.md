@@ -28,7 +28,7 @@ cargo install prose
 
 ## Examples
 
-Given the following input on STDIN:
+Given the following input, a [quote by Angela Davis](https://www.latimes.com/opinion/op-ed/la-oe-morrison-davis-20140507-column.html), on STDIN:
 
     I believe profoundly in the possibilities of democracy, but democracy needs
     to be emancipated from capitalism. As long as we inhabit
@@ -130,6 +130,91 @@ prose -w 60
     long as we inhabit a capitalist democracy, a future of
     racial equality, gender equality, economic equality will
     elude us.
+
+
+### Email quotes
+
+`prose` attempts to be smart about keeping email quoting levels, if they are the recognizable format of `>` introducing each new quote level. With the following example email input:
+
+    Abby,
+    
+    Whoops! Sorry about that. I forgot to export it as a PDF. Re-attaching
+    to this message. Again, let me know if you need anything else!
+    
+    Bill
+    
+    Abby writes:
+    
+    > Bill,
+    > 
+    > I tried to open the attachment, but it looks like it isn't in the correct format. Could
+    > you re-send it?
+    > 
+    > Thanks,
+    > 
+    > Abby
+    > 
+    > Bill writes:
+    > 
+    > > Abby,
+    > >
+    > > I like the way this project is turning out so far! Kudos.
+    > > 
+    > > I'm attaching my first pass at working version. Let me know if you need anything else
+    > > before our meeting on Tuesday.
+    > > 
+    > > Cheers,
+    > > 
+    > > Bill
+    > 
+    >
+    > This message and its contents are confidential or whatever.
+    > 
+
+And a just the width set:
+
+```shell
+prose -w 48
+```
+
+    Abby,
+    
+    Whoops! Sorry about that. I forgot to export it
+    as a PDF. Re-attaching to this message. Again,
+    let me know if you need anything else!
+    
+    Bill
+    
+    Abby writes:
+    
+    > Bill,
+    >
+    > I tried to open the attachment, but it looks
+    > like it isn't in the correct format. Could you
+    > re-send it?
+    >
+    > Thanks,
+    >
+    > Abby
+    >
+    > Bill writes:
+    >
+    > > Abby,
+    > >
+    > > I like the way this project is turning out
+    > > so far! Kudos.
+    > >
+    > > I'm attaching my first pass at working
+    > > version. Let me know if you need anything
+    > > else before our meeting on Tuesday.
+    > >
+    > > Cheers,
+    > >
+    > > Bill
+    >
+    > This message and its contents are confidential
+    > or whatever.
+    >
 
 
 ### Using the fit option, "-f"
