@@ -31,6 +31,16 @@ fn test_widths() {
 }
 
 #[test]
+fn test_comments_regression() {
+    let opts = FormatOpts::with_max_length(40);
+    let data = include_str!("data/inputs/comments_regress.txt");
+    let mut actual = prose::reformat(&opts, data);
+    actual.push_str("\n"); // usually by virtue of println
+    let expected = include_str!("data/outputs/comments_40.txt");
+    assert_diff!(expected, &actual);
+}
+
+#[test]
 fn test_aggressive_fit() {
     let opts = FormatOpts {
         max_length: 50,
@@ -91,9 +101,11 @@ fn test_markdown() {
         ..Default::default()
     };
     let data = include_str!("data/inputs/markdown.md");
-    let mut actual: String = data.split("\n\n").map(|s| {
-        prose::reformat::reformat(&opts, s)
-    }).collect::<Vec<_>>().join("\n\n");
+    let mut actual: String = data
+        .split("\n\n")
+        .map(|s| prose::reformat::reformat(&opts, s))
+        .collect::<Vec<_>>()
+        .join("\n\n");
     actual.push_str("\n"); // usually by virtue of println
     let expected = include_str!("data/outputs/markdown_53.md");
     assert_diff!(expected, &actual);

@@ -62,7 +62,6 @@ impl<'a> Width for Token<'a> {
             Token::Borrowed(s) => UnicodeWidthStr::width(*s),
             Token::Owned(s) => UnicodeWidthStr::width(s.as_str()),
         }
-
     }
 }
 
@@ -84,13 +83,12 @@ fn spaces(n: usize) -> String {
 }
 
 fn trim_off<'a>(s: &'a str, prefix: &str, suffix: &str) -> &'a str {
-    if s.len() < prefix.len() {
+    if s.len() < (prefix.len() + suffix.len()) {
         ""
     } else {
         &s[prefix.len()..(s.len() - suffix.len())]
     }
 }
-
 
 fn get_quotes(line: &str) -> (usize, &str) {
     let quote_chars = line
@@ -136,7 +134,6 @@ fn collect_blocks<'a>(lines: &[&'a str], prefix: &'a str, suffix: &'a str) -> Ve
     }
     blocks
 }
-
 
 struct Input<'a> {
     lines: Vec<&'a str>,
@@ -225,10 +222,11 @@ impl<'a> Input<'a> {
     }
 
     pub fn with_input(input: &'a str) -> Self {
-        Self { lines: input.lines().collect() }
+        Self {
+            lines: input.lines().collect(),
+        }
     }
 }
-
 
 #[derive(Debug)]
 struct Entry {
@@ -409,18 +407,21 @@ impl<'a> Reformatter<'a> {
 }
 
 pub fn reformat(opts: &FormatOpts, input: &str) -> String {
-    use pulldown_cmark::{Parser, Options, Event, Tag};
+    use pulldown_cmark::{Event, Options, Parser, Tag};
 
     let do_reformat = if opts.markdown {
         let mut parser = Parser::new_ext(&input, Options::empty());
         let pair = (parser.next(), parser.next());
-        matches!(pair, (Some(Event::Start(Tag::Paragraph)), Some(Event::Text(_))))
+        matches!(
+            pair,
+            (Some(Event::Start(Tag::Paragraph)), Some(Event::Text(_)))
+        )
     } else {
         true
     };
 
     if do_reformat {
-        let cleaned_input = if let Some(_) = input.find("\t") {
+        let cleaned_input = if input.find('\t').is_some() {
             let expanded = spaces(opts.tab_width);
             Cow::Owned(input.replace("\t", &expanded))
         } else {
