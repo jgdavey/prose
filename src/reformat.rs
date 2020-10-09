@@ -423,9 +423,9 @@ pub fn reformat(opts: &FormatOpts, input: &str) -> String {
     if do_reformat {
         let cleaned_input = if input.find('\t').is_some() {
             let expanded = spaces(opts.tab_width);
-            Cow::Owned(input.replace("\t", &expanded))
+            Token::Owned(input.replace("\t", &expanded))
         } else {
-            Cow::Borrowed(input)
+            Token::Borrowed(input)
         };
 
         let rfmt = Reformatter::new(opts, &cleaned_input);
