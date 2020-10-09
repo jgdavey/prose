@@ -16,6 +16,12 @@ A CLI utility to reformat text.
 
 Download the [latest release](https://github.com/jgdavey/prose/releases/latest) for your platform, extract, and put the `prose` binary wherever you'd like.
 
+NOTE that on recent versions of Mac OS, you may need to un-quarantine the downloaded binary for it to run. To do so:
+
+```shell
+xattr -d com.apple.quarantine path/to/prose
+```
+
 
 ### Via cargo
 
