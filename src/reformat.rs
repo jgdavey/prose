@@ -341,8 +341,9 @@ impl<'a> Reformatter<'a> {
 
         for target in (min_target..=max_target).rev() {
             let (p, cost) = self.solve(words, target);
+            let target_distance = max_target as u64 - target as u64;
             // higher cost the further from original target
-            let cost = cost + max_target as u64 - target as u64;
+            let cost = cost + target_distance * target_distance;
             if cost < best_cost {
                 best_cost = cost;
                 path = p;
