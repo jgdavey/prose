@@ -1,6 +1,6 @@
 # prose
 
-[![Build Status](https://travis-ci.org/jgdavey/prose.svg?branch=master)](https://travis-ci.org/jgdavey/prose)
+[![Build Status](https://travis-ci.org/jgdavey/prose.svg?branch=main)](https://travis-ci.org/jgdavey/prose)
 [![Crates.io](https://img.shields.io/crates/l/prose)](https://crates.io/crates/prose)
 [![Crates.io](https://img.shields.io/crates/v/prose)](https://crates.io/crates/prose)
 
