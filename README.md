@@ -1,6 +1,6 @@
 # prose
 
-[![Build Status](https://travis-ci.org/jgdavey/prose.svg?branch=main)](https://travis-ci.org/jgdavey/prose)
+[![Build Status](https://github.com/jgdavey/prose/actions/workflows/ci.yml/badge.svg)](https://github.com/jgdavey/prose/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/l/prose)](https://crates.io/crates/prose)
 [![Crates.io](https://img.shields.io/crates/v/prose)](https://crates.io/crates/prose)
 
