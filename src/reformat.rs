@@ -42,10 +42,10 @@ impl FormatOpts {
     ) -> Self {
         Self {
             max_length,
+            tab_width,
             last_line,
             reduce_jaggedness,
             markdown,
-            tab_width,
         }
     }
 }
