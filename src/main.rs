@@ -4,11 +4,11 @@ extern crate clap;
 use std::fs;
 use std::io::{self, BufRead, BufReader};
 mod reformat;
-use clap::{Command, Arg, ArgAction};
+use clap::{Arg, ArgAction, Command};
 use reformat::{reformat, FormatOpts};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
-    println!("{}", reformat(&opts, &buf.join("\n")));
+    println!("{}", reformat(opts, &buf.join("\n")));
 }
 
 fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::Result<()> {

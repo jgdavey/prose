@@ -79,7 +79,7 @@ enum Dir {
 }
 
 fn spaces(n: usize) -> String {
-    std::iter::repeat(" ").take(n).collect::<String>()
+    " ".repeat(n)
 }
 
 fn trim_off<'a>(s: &'a str, prefix: &str, suffix: &str) -> &'a str {
@@ -92,7 +92,7 @@ fn trim_off<'a>(s: &'a str, prefix: &str, suffix: &str) -> &'a str {
 
 fn get_quotes(line: &str) -> (usize, &str) {
     let quote_chars = line
-        .splitn(2, |c: char| !(c.is_whitespace() || c == '>'))
+        .split(|c: char| !(c.is_whitespace() || c == '>'))
         .next()
         .unwrap();
     if quote_chars.is_empty() {
@@ -107,7 +107,7 @@ fn collect_blocks<'a>(lines: &[&'a str], prefix: &'a str, suffix: &'a str) -> Ve
     let mut blocks: Vec<Block> = vec![];
     let groups = lines
         .iter()
-        .map(|s| trim_off(s, &prefix, &suffix))
+        .map(|s| trim_off(s, prefix, suffix))
         .group_by(|l| l.trim().is_empty());
     for (_, line_group) in &groups {
         let mut words = vec![];
@@ -280,13 +280,12 @@ impl<'a> Reformatter<'a> {
                 }
                 break;
             }
-            let cost;
-            if j > (count - 2) && !self.last_line {
+            let cost = if j > (count - 2) && !self.last_line {
                 //handle last line
-                cost = 0;
+                0
             } else {
                 let diff = (target - linew) as u64;
-                cost = diff * diff;
+                diff * diff
             };
             results.push((j, cost));
         }
@@ -397,7 +396,7 @@ impl<'a> Reformatter<'a> {
                     let pad_amount = max_padding - l.width() as i64 + prefix_length as i64;
                     let pad = spaces(std::cmp::max(pad_amount, 0i64) as usize);
                     line.push_str(&pad);
-                    line.push_str(&block.suffix);
+                    line.push_str(block.suffix);
                 }
                 output.push(line);
             }
@@ -410,7 +409,7 @@ pub fn reformat(opts: &FormatOpts, input: &str) -> String {
     use pulldown_cmark::{Event, Options, Parser, Tag};
 
     let do_reformat = if opts.markdown {
-        let mut parser = Parser::new_ext(&input, Options::empty());
+        let mut parser = Parser::new_ext(input, Options::empty());
         let pair = (parser.next(), parser.next());
         matches!(
             pair,
@@ -423,7 +422,7 @@ pub fn reformat(opts: &FormatOpts, input: &str) -> String {
     if do_reformat {
         let cleaned_input = if input.find('\t').is_some() {
             let expanded = spaces(opts.tab_width);
-            Token::Owned(input.replace("\t", &expanded))
+            Token::Owned(input.replace('\t', &expanded))
         } else {
             Token::Borrowed(input)
         };
