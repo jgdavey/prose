@@ -13,37 +13,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build:
-        - pinned
-        - stable
-        - beta
-        - nightly
-        - nightly-musl
-        - macos
-        # - win-msvc
+        os:
+          - ubuntu-latest
+        rust:
+          - stable
+          - beta
+          - nightly
         include:
-        - build: pinned
-          os: ubuntu-18.04
-          rust: 1.52.1
-        - build: stable
-          os: ubuntu-18.04
-          rust: stable
-        - build: beta
-          os: ubuntu-18.04
-          rust: beta
-        - build: nightly
-          os: ubuntu-18.04
-          rust: nightly
-        - build: nightly-musl
-          os: ubuntu-18.04
-          rust: nightly
-          target: x86_64-unknown-linux-musl
-        - build: macos
-          os: macos-latest
-          rust: nightly
-        # - build: win-msvc
-        #   os: windows-2019
-        #   rust: nightly
+          - os: macos-latest
+            rust: stable
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -65,7 +43,7 @@ jobs:
 
   rustfmt:
     name: rustfmt
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -82,7 +60,7 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
