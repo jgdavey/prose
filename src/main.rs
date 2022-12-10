@@ -4,7 +4,7 @@ extern crate clap;
 use std::fs;
 use std::io::{self, BufRead, BufReader};
 mod reformat;
-use clap::{App, Arg};
+use clap::{Command, Arg, ArgAction};
 use reformat::{reformat, FormatOpts};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
@@ -29,18 +29,18 @@ fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::
 
 fn matches_to_format_opts(matches: &clap::ArgMatches) -> FormatOpts {
     let width: usize = matches
-        .value_of("width")
+        .get_one::<&str>("width")
         .unwrap()
         .parse()
         .expect("Choose a positive number for width");
-    let last_line = matches.is_present("last line");
-    let reduce_jaggedness = matches.is_present("better fit");
+    let last_line = matches.get_flag("last line");
+    let reduce_jaggedness = matches.get_flag("better fit");
     let tab_width: usize = matches
-        .value_of("tab width")
+        .get_one::<&str>("tab width")
         .unwrap()
         .parse()
         .expect("Choose a positive number for tab width");
-    let markdown = matches.is_present("markdown");
+    let markdown = matches.get_flag("markdown");
 
     FormatOpts {
         markdown,
@@ -60,44 +60,47 @@ fn get_reader(input: &str) -> io::Result<Box<dyn BufRead>> {
 }
 
 fn main() {
-    let matches = App::new("prose")
+    let matches = Command::new("prose")
         .version(crate_version!())
         .about("Reformats prose to specified width")
-        .arg(Arg::with_name("width")
-             .short("w")
+        .arg(Arg::new("width")
+             .short('w')
              .long("width")
              .value_name("WIDTH")
              .default_value("72")
              .help("Sets the maximum width for a line")
              .takes_value(true))
-        .arg(Arg::with_name("last line")
-             .short("l")
+        .arg(Arg::new("last line")
+             .short('l')
              .long("last-line")
              .help("Treat last line of a paragraph like the rest")
+             .action(ArgAction::SetTrue)
              .takes_value(false))
-        .arg(Arg::with_name("better fit")
-             .short("f")
+        .arg(Arg::new("better fit")
+             .short('f')
              .long("use-better-fit")
              .help("Be more aggressive in reducing jagged line endings, even if it means a narrower width")
+             .action(ArgAction::SetTrue)
              .takes_value(false))
-        .arg(Arg::with_name("tab width")
-             .short("t")
+        .arg(Arg::new("tab width")
+             .short('t')
              .long("tab-width")
              .default_value("4")
              .help("Number of spaces to expand tab characters to")
              .takes_value(true))
-        .arg(Arg::with_name("markdown")
-             .short("m")
+        .arg(Arg::new("markdown")
+             .short('m')
              .long("markdown")
              .help("Parse as markdown rather than plain text")
+             .action(ArgAction::SetTrue)
              .takes_value(false))
-        .arg(Arg::with_name("FILE")
+        .arg(Arg::new("FILE")
              .help("Operate on file FILE (Use '-' for stdin)")
              .required(false)
              .index(1))
         .get_matches();
 
-    let input = matches.value_of("FILE").unwrap_or("-");
+    let input = matches.get_one::<&str>("FILE").unwrap_or(&"-");
     let opts = matches_to_format_opts(&matches);
     match get_reader(input) {
         Ok(mut rdr) => {
