@@ -230,13 +230,12 @@ impl<'a> Input<'a> {
 
 #[derive(Debug)]
 struct Entry {
-    len: usize,
     offset: usize,
 }
 
 impl Entry {
-    fn new(len: usize, offset: usize) -> Self {
-        Entry { len, offset }
+    fn new(offset: usize) -> Self {
+        Entry { offset }
     }
 }
 
@@ -296,14 +295,14 @@ impl<'a> Reformatter<'a> {
 
     fn solve(&self, words: &[Token<'a>], target: usize) -> (Vec<usize>, u64) {
         let count = words.len();
-        let dummy = Entry::new(0, 0);
+        let dummy = Entry::new(0);
 
         let mut entries = vec![dummy];
         let mut offset = 0;
         for w in words {
             let wid = w.width();
             offset += wid;
-            entries.push(Entry::new(wid, offset));
+            entries.push(Entry::new(offset));
         }
 
         let result = dijkstra(
