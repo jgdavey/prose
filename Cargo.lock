@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "prose"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "ansi_term",
  "clap 4.0.29",
