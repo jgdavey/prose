@@ -29,16 +29,14 @@ fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::
 
 fn matches_to_format_opts(matches: &clap::ArgMatches) -> FormatOpts {
     let width: usize = matches
-        .get_one::<&str>("width")
-        .unwrap()
-        .parse()
+        .get_one::<usize>("width")
+        .cloned()
         .expect("Choose a positive number for width");
     let last_line = matches.get_flag("last line");
     let reduce_jaggedness = matches.get_flag("better fit");
     let tab_width: usize = matches
-        .get_one::<&str>("tab width")
-        .unwrap()
-        .parse()
+        .get_one::<usize>("tab width")
+        .cloned()
         .expect("Choose a positive number for tab width");
     let format_mode = if matches.get_flag("markdown") {
         FormatMode::Markdown
@@ -71,6 +69,7 @@ fn main() {
              .short('w')
              .long("width")
              .value_name("WIDTH")
+             .value_parser(clap::value_parser!(usize))
              .default_value("72")
              .help("Sets the maximum width for a line"))
         .arg(Arg::new("last line")
@@ -86,11 +85,13 @@ fn main() {
         .arg(Arg::new("tab width")
              .short('t')
              .long("tab-width")
+             .value_parser(clap::value_parser!(usize))
              .default_value("4")
              .help("Number of spaces to expand tab characters to"))
         .arg(Arg::new("markdown")
              .short('m')
              .long("markdown")
+             .conflicts_with("code comments")
              .help("Parse as markdown rather than plain text")
              .action(ArgAction::SetTrue))
         .arg(Arg::new("FILE")
