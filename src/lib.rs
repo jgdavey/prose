@@ -14,4 +14,4 @@
 
 pub mod reformat;
 
-pub use reformat::{reformat, FormatOpts, Reformatter};
+pub use reformat::{reformat, FormatMode, FormatOpts, Reformatter};

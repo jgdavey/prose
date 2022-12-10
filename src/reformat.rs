@@ -4,12 +4,17 @@ use unicode_width::UnicodeWidthStr;
 
 use std::borrow::Cow;
 
+pub enum FormatMode {
+    PlainText,
+    Markdown,
+}
+
 pub struct FormatOpts {
     pub max_length: usize,
     pub tab_width: usize,
     pub last_line: bool,
     pub reduce_jaggedness: bool,
-    pub markdown: bool,
+    pub format_mode: FormatMode,
 }
 
 impl Default for FormatOpts {
@@ -18,8 +23,8 @@ impl Default for FormatOpts {
             max_length: 72,
             last_line: false,
             reduce_jaggedness: false,
-            markdown: false,
             tab_width: 4,
+            format_mode: FormatMode::PlainText,
         }
     }
 }
@@ -37,15 +42,15 @@ impl FormatOpts {
         max_length: usize,
         last_line: bool,
         reduce_jaggedness: bool,
-        markdown: bool,
         tab_width: usize,
+        format_mode: FormatMode,
     ) -> Self {
         Self {
             max_length,
             tab_width,
             last_line,
             reduce_jaggedness,
-            markdown,
+            format_mode,
         }
     }
 }
@@ -407,16 +412,18 @@ impl<'a> Reformatter<'a> {
 
 pub fn reformat(opts: &FormatOpts, input: &str) -> String {
     use pulldown_cmark::{Event, Options, Parser, Tag};
+    use FormatMode::*;
 
-    let do_reformat = if opts.markdown {
-        let mut parser = Parser::new_ext(input, Options::empty());
-        let pair = (parser.next(), parser.next());
-        matches!(
-            pair,
-            (Some(Event::Start(Tag::Paragraph)), Some(Event::Text(_)))
-        )
-    } else {
-        true
+    let do_reformat = match opts.format_mode {
+        Markdown => {
+            let mut parser = Parser::new_ext(input, Options::empty());
+            let pair = (parser.next(), parser.next());
+            matches!(
+                pair,
+                (Some(Event::Start(Tag::Paragraph)), Some(Event::Text(_)))
+            )
+        }
+        _ => true,
     };
 
     if do_reformat {

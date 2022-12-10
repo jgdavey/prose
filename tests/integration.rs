@@ -2,7 +2,7 @@ extern crate prose;
 
 mod diff;
 
-use prose::FormatOpts;
+use prose::{FormatMode, FormatOpts};
 
 #[test]
 fn test_blank_string() {
@@ -97,7 +97,7 @@ fn test_utf8_with_prefixes() {
 fn test_markdown() {
     let opts = FormatOpts {
         max_length: 53,
-        markdown: true,
+        format_mode: FormatMode::Markdown,
         ..Default::default()
     };
     let data = include_str!("data/inputs/markdown.md");

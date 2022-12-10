@@ -5,7 +5,7 @@ use std::fs;
 use std::io::{self, BufRead, BufReader};
 mod reformat;
 use clap::{Arg, ArgAction, Command};
-use reformat::{reformat, FormatOpts};
+use reformat::{reformat, FormatMode, FormatOpts};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
     println!("{}", reformat(opts, &buf.join("\n")));
@@ -40,14 +40,18 @@ fn matches_to_format_opts(matches: &clap::ArgMatches) -> FormatOpts {
         .unwrap()
         .parse()
         .expect("Choose a positive number for tab width");
-    let markdown = matches.get_flag("markdown");
+    let format_mode = if matches.get_flag("markdown") {
+        FormatMode::Markdown
+    } else {
+        FormatMode::PlainText
+    };
 
     FormatOpts {
-        markdown,
         max_length: width,
         last_line,
         reduce_jaggedness,
         tab_width,
+        format_mode,
     }
 }
 
