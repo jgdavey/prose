@@ -1,7 +1,7 @@
 // use itertools::Itertools;
-use unicode_width::UnicodeWidthStr;
+use crate::analysis::{Block, Input, Token, Width};
 use pathfinding::prelude::dijkstra;
-use crate::analysis::{Token, Block, Input, Width};
+use unicode_width::UnicodeWidthStr;
 
 pub enum FormatMode {
     PlainText,

@@ -1,6 +1,6 @@
-use unicode_width::UnicodeWidthStr;
 use itertools::Itertools;
 use std::borrow::Cow;
+use unicode_width::UnicodeWidthStr;
 
 pub type Token<'a> = Cow<'a, str>;
 
