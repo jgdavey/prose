@@ -40,6 +40,8 @@ fn matches_to_format_opts(matches: &clap::ArgMatches) -> FormatOpts {
         .expect("Choose a positive number for tab width");
     let format_mode = if matches.get_flag("markdown") {
         FormatMode::Markdown
+    } else if matches.get_flag("code comments") {
+        FormatMode::Code
     } else {
         FormatMode::PlainText
     };
@@ -93,6 +95,11 @@ fn main() {
              .long("markdown")
              .conflicts_with("code comments")
              .help("Parse as markdown rather than plain text")
+             .action(ArgAction::SetTrue))
+        .arg(Arg::new("code comments")
+             .short('c')
+             .long("code-comments")
+             .help("Handle common code-comment prefixes")
              .action(ArgAction::SetTrue))
         .arg(Arg::new("FILE")
              .help("Operate on file FILE (Use '-' for stdin)")

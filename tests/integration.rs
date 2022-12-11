@@ -110,3 +110,21 @@ fn test_markdown() {
     let expected = include_str!("data/outputs/markdown_53.md");
     assert_diff!(expected, &actual);
 }
+
+#[test]
+fn test_rust_comments() {
+    let opts = FormatOpts {
+        max_length: 53,
+        format_mode: FormatMode::Code,
+        ..Default::default()
+    };
+    let data = include_str!("data/inputs/rust_comments.txt");
+    let mut actual: String = data
+        .split("\n\n")
+        .map(|s| prose::reformat::reformat(&opts, s))
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    actual.push_str("\n"); // usually by virtue of println
+    let expected = include_str!("data/outputs/rust_comments_56.txt");
+    assert_diff!(expected, &actual);
+}

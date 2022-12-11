@@ -7,6 +7,7 @@ use std::borrow::Cow;
 pub enum FormatMode {
     PlainText,
     Markdown,
+    Code,
 }
 
 pub struct FormatOpts {
@@ -207,6 +208,25 @@ impl<'a> Input<'a> {
         }
     }
 
+    fn analyze_code_comments(&self) -> Option<Vec<Block<'a>>> {
+        if self.lines.is_empty() {
+            return None;
+        }
+        let comment_styles = ["///", "//", "#", ";;", ";", "--"];
+        let first = self.lines[0];
+        let start = first.find(|c: char| !c.is_ascii_whitespace())?;
+        let comment_style = comment_styles
+            .iter()
+            .find(|&pat| (first[start..]).starts_with(pat))?;
+        let pat = &first[0..=(start + comment_style.len())];
+        if self.lines.iter().all(|line| line.starts_with(pat)) {
+            let collected = collect_blocks(&self.lines, pat, "");
+            Some(collected)
+        } else {
+            None
+        }
+    }
+
     fn analyze_surround(&self) -> Option<Vec<Block<'a>>> {
         let mut prefix = self.longest_common_affix(Dir::Forward);
         let mut suffix = self.longest_common_affix(Dir::Reverse);
@@ -219,11 +239,6 @@ impl<'a> Input<'a> {
         let collected = collect_blocks(&self.lines, prefix, suffix);
 
         Some(collected)
-    }
-
-    fn analyze(&self) -> Vec<Block<'a>> {
-        let blocks = self.analyze_quotes().or_else(|| self.analyze_surround());
-        blocks.unwrap()
     }
 
     pub fn with_input(input: &'a str) -> Self {
@@ -254,7 +269,13 @@ pub struct Reformatter<'a> {
 
 impl<'a> Reformatter<'a> {
     pub fn new(opts: &FormatOpts, input: &'a str) -> Reformatter<'a> {
-        let blocks = Input::with_input(input).analyze();
+        let input = Input::with_input(input);
+        let blocks = match opts.format_mode {
+            FormatMode::Code => input.analyze_code_comments(),
+            _ => input.analyze_quotes(),
+        }
+        .unwrap_or_else(|| input.analyze_surround().unwrap());
+
         // eprintln!("Prefix: {}, Suffix: {}, Max: {}, Target: {}", prefix, suffix, opts.max_length, target);
         Reformatter {
             blocks,
