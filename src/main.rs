@@ -3,7 +3,9 @@ extern crate clap;
 
 use std::fs;
 use std::io::{self, BufRead, BufReader};
+mod analysis;
 mod reformat;
+
 use clap::{Arg, ArgAction, Command};
 use reformat::{reformat, FormatMode, FormatOpts};
 

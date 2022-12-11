@@ -12,6 +12,7 @@
 //! assert_eq!(new_data, "Lot's of string data...\nto be reformatted");
 //! ```
 
+mod analysis;
 pub mod reformat;
 
 pub use reformat::{reformat, FormatMode, FormatOpts, Reformatter};
