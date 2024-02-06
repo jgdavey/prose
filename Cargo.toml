@@ -14,12 +14,12 @@ unicode-width = "0.1"
 clap = { version = "4.0", features = ["cargo"] }
 pathfinding = "4.0"
 ansi_term = "0.12"
-itertools = "0.10"
+itertools = "0.12"
 pulldown-cmark = "0.9"
 
 [dev-dependencies]
 difference = "2.0.0"
-criterion = "0.4"
+criterion = "0.5"
 
 [[bench]]
 name = "benchmark"
