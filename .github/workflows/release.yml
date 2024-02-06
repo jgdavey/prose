@@ -92,21 +92,13 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 1
         ref: ${{ env.RELEASE_VERSION }}
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
-        target: ${{ matrix.target }}
-
     - name: Build release binary
-      run: cargo build --verbose --release
+      run: cargo build --verbose --release --target ${{ matrix.target }}
 
     - name: Strip release binary (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'linux-musl' || matrix.build == 'macos'

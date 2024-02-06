@@ -15,23 +15,10 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-        rust:
-          - stable
-          - beta
-          - nightly
-        include:
-          - os: macos-latest
-            rust: stable
+          - macos-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust }}
-        profile: minimal
-        override: true
+      uses: actions/checkout@v4
 
     - name: Build project (debug mode)
       shell: bash
@@ -46,14 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        profile: minimal
-        components: rustfmt
+      uses: actions/checkout@v4
     - name: Check formatting
       run: |
         cargo fmt --all -- --check
@@ -63,13 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+        uses: actions/checkout@v4
       - name: Check documentation
         # env:
         #   RUSTDOCFLAGS: -D warnings
