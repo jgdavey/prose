@@ -1,12 +1,11 @@
-#[macro_use]
-extern crate clap;
+use clap::Parser;
 
 use std::fs;
 use std::io::{self, BufRead, BufReader};
 mod analysis;
 mod reformat;
 
-use clap::{Arg, ArgAction, Command};
+
 use reformat::{reformat, FormatMode, FormatOpts};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
@@ -29,34 +28,6 @@ fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::
     Ok(())
 }
 
-fn matches_to_format_opts(matches: &clap::ArgMatches) -> FormatOpts {
-    let width: usize = matches
-        .get_one::<usize>("width")
-        .cloned()
-        .expect("Choose a positive number for width");
-    let last_line = matches.get_flag("last line");
-    let reduce_jaggedness = matches.get_flag("better fit");
-    let tab_width: usize = matches
-        .get_one::<usize>("tab width")
-        .cloned()
-        .expect("Choose a positive number for tab width");
-    let format_mode = if matches.get_flag("markdown") {
-        FormatMode::Markdown
-    } else if matches.get_flag("code comments") {
-        FormatMode::Code
-    } else {
-        FormatMode::PlainText
-    };
-
-    FormatOpts {
-        max_length: width,
-        last_line,
-        reduce_jaggedness,
-        tab_width,
-        format_mode,
-    }
-}
-
 fn get_reader(input: &str) -> io::Result<Box<dyn BufRead>> {
     if input == "-" {
         Ok(Box::new(BufReader::new(io::stdin())))
@@ -65,53 +36,60 @@ fn get_reader(input: &str) -> io::Result<Box<dyn BufRead>> {
     }
 }
 
-fn main() {
-    let matches = Command::new("prose")
-        .version(crate_version!())
-        .about("Reformats prose to specified width")
-        .arg(Arg::new("width")
-             .short('w')
-             .long("width")
-             .value_name("WIDTH")
-             .value_parser(clap::value_parser!(usize))
-             .default_value("72")
-             .help("Sets the maximum width for a line"))
-        .arg(Arg::new("last line")
-             .short('l')
-             .long("last-line")
-             .help("Treat last line of a paragraph like the rest")
-             .action(ArgAction::SetTrue))
-        .arg(Arg::new("better fit")
-             .short('f')
-             .long("use-better-fit")
-             .help("Be more aggressive in reducing jagged line endings, even if it means a narrower width")
-             .action(ArgAction::SetTrue))
-        .arg(Arg::new("tab width")
-             .short('t')
-             .long("tab-width")
-             .value_parser(clap::value_parser!(usize))
-             .default_value("4")
-             .help("Number of spaces to expand tab characters to"))
-        .arg(Arg::new("markdown")
-             .short('m')
-             .long("markdown")
-             .conflicts_with("code comments")
-             .help("Parse as markdown rather than plain text")
-             .action(ArgAction::SetTrue))
-        .arg(Arg::new("code comments")
-             .short('c')
-             .long("code-comments")
-             .help("Handle common code-comment prefixes")
-             .action(ArgAction::SetTrue))
-        .arg(Arg::new("FILE")
-             .help("Operate on file FILE (Use '-' for stdin)")
-             .required(false)
-             .index(1))
-        .get_matches();
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// Filename or "-" for stdin
+    file: Option<String>,
 
-    let input = matches.get_one::<&str>("FILE").unwrap_or(&"-");
-    let opts = matches_to_format_opts(&matches);
-    match get_reader(input) {
+    /// Target width
+    #[arg(short, long, default_value_t = 72)]
+    width: usize,
+
+    /// Tab width
+    #[arg(short, long, default_value_t = 4)]
+    tab_width: usize,
+
+    /// Treat last line of a paragraph like the rest
+    #[arg(short, long)]
+    last_line: bool,
+
+    /// Be more aggressive in reducing jagged line endings, even if it means a narrower width
+    #[arg(short, long = "use-better-fit")]
+    fit: bool,
+
+    /// Treat text like markdown (format paragraphs only)
+    #[arg(short, long)]
+    markdown: bool,
+
+    /// Try to handle code comments
+    #[arg(short, long)]
+    code_comments: bool
+}
+
+
+fn main() {
+    let cli = Cli::parse();
+
+    let input = cli.file.unwrap_or_else(|| String::from("-"));
+
+    let format_mode = if cli.markdown {
+        FormatMode::Markdown
+    } else if cli.code_comments {
+        FormatMode::Code
+    } else {
+        FormatMode::PlainText
+    };
+
+    let opts = FormatOpts {
+        max_length: cli.width,
+        last_line: cli.last_line,
+        reduce_jaggedness: cli.fit,
+        tab_width: cli.tab_width,
+        format_mode,
+    };
+
+    match get_reader(&input) {
         Ok(mut rdr) => {
             if let Err(err) = process_paragraphs(&mut rdr, opts) {
                 eprintln!("{}", err);
