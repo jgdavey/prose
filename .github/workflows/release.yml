@@ -28,40 +28,35 @@ on:
     # - ag/work
     tags:
     - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
 jobs:
   create-release:
     name: create-release
     runs-on: ubuntu-latest
-    # env:
-      # Set to force version number, e.g., when no tag exists.
-      # RELEASE_VERSION: TEST-0.0.0
-    outputs:
-      upload_url: ${{ steps.release.outputs.upload_url }}
-      release_version: ${{ env.RELEASE_VERSION }}
     steps:
-      - name: Get the release version from the input
-        shell: bash
-        if: github.event.inputs.tag
-        run: |
-          echo "RELEASE_VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
-          echo "version is: ${{ env.RELEASE_VERSION }}"
+      - uses: actions/checkout@v4
       - name: Get the release version from the tag
-        shell: bash
-        if: env.RELEASE_VERSION == ''
+        if: env.VERSION == ''
+        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Show the version
         run: |
-          # Apparently, this is the right way to get a tag name. Really?
-          #
-          # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
-          echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "version is: ${{ env.RELEASE_VERSION }}"
+          echo "version is: $VERSION"
+      - name: Check that tag version and Cargo.toml version are the same
+        shell: bash
+        run: |
+          if ! grep -q "version = \"$VERSION\"" Cargo.toml; then
+            echo "version does not match Cargo.toml" >&2
+            exit 1
+          fi
       - name: Create GitHub release
-        id: release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          release_name: ${{ env.RELEASE_VERSION }}
+        run: gh release create $VERSION --draft --verify-tag --title $VERSION
+    outputs:
+      version: ${{ env.VERSION }}
 
   build-release:
     name: build-release
@@ -87,7 +82,7 @@ jobs:
           os: macos-latest
           target: aarch64-apple-darwin
         - build: win-msvc
-          os: windows-2019
+          os: windows-latest
           target: x86_64-pc-windows-msvc
 
     steps:
@@ -97,37 +92,61 @@ jobs:
         fetch-depth: 1
         ref: ${{ env.RELEASE_VERSION }}
 
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        target: ${{ matrix.target }}
+
     - name: Build release binary
-      run: cargo build --verbose --release --target ${{ matrix.target }}
+      run: |
+        cargo build --verbose --release --target ${{ matrix.target }}
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          bin="target/${{ matrix.target }}/release/prose.exe"
+        else
+          bin="target/${{ matrix.target }}/release/prose"
+        fi
+        [ -e "$bin" ] || echo "Uh oh, $bin does not exist" >&2
+        echo "BIN=$bin" >> $GITHUB_ENV
 
     - name: Strip release binary (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'linux-musl' || matrix.build == 'macos'
-      run: strip "target/release/prose"
+      run: strip "$BIN"
 
-    - name: Build archive
+    - name: Determine archive name
       shell: bash
       run: |
-        staging="prose-${{ needs.create-release.outputs.release_version }}-${{ matrix.target }}"
-        mkdir -p "$staging"/{complete,doc}
+        version="${{ needs.create-release.outputs.version }}"
+        echo "ARCHIVE=prose-$version-${{ matrix.target }}" >> $GITHUB_ENV
 
-        cp {README.md,CODE_OF_CONDUCT.md,LICENSE-APACHE,LICENSE-MIT} "$staging/"
+    - name: Creating directory for archive
+      shell: bash
+      run: |
+        cp {README.md,CODE_OF_CONDUCT.md,LICENSE-APACHE,LICENSE-MIT} "$ARCHIVE/"
+        cp "$BIN" "$ARCHIVE"/
 
-        if [ "${{ matrix.os }}" = "windows-2019" ]; then
-          cp "target/release/prose.exe" "$staging/"
-          7z a "$staging.zip" "$staging"
-          echo "ASSET=$staging.zip" >> $GITHUB_ENV
-        else
-          cp "target/release/prose" "$staging/"
-          tar czf "$staging.tar.gz" "$staging"
-          echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
-        fi
+    - name: Build archive (Windows)
+      shell: bash
+      if: matrix.os == 'windows-latest'
+      run: |
+        7z a "$ARCHIVE.zip" "$ARCHIVE"
+        certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
+        echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
+        echo "ASSET_SUM=$ARCHIVE.zip.sha256" >> $GITHUB_ENV
+
+    - name: Build archive (Unix)
+      shell: bash
+      if: matrix.os != 'windows-latest'
+      run: |
+        tar czf "$ARCHIVE.tar.gz" "$ARCHIVE"
+        shasum -a 256 "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"
+        echo "ASSET=$ARCHIVE.tar.gz" >> $GITHUB_ENV
+        echo "ASSET_SUM=$ARCHIVE.tar.gz.sha256" >> $GITHUB_ENV
 
     - name: Upload release archive
-      uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ${{ env.ASSET }}
-        asset_name: ${{ env.ASSET }}
-        asset_content_type: application/octet-stream
+      shell: bash
+      run: |
+        version="${{ needs.create-release.outputs.version }}"
+        gh release upload "$version" ${{ env.ASSET }} ${{ env.ASSET_SUM }}
