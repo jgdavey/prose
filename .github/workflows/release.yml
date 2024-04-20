@@ -17,15 +17,9 @@
 
 name: release
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to release'
-        required: true
   push:
-    # Enable when testing release infrastructure on a branch.
-    # branches:
-    # - ag/work
+    branches:
+    - canary
     tags:
     - "v[0-9]+.[0-9]+.[0-9]+"
 
@@ -46,12 +40,20 @@ jobs:
           echo "version is: $VERSION"
       - name: Check that tag version and Cargo.toml version are the same
         shell: bash
+        if: env.VERSION != 'canary'
         run: |
           if ! grep -q "version = \"$VERSION\"" Cargo.toml; then
             echo "version does not match Cargo.toml" >&2
             exit 1
           fi
+      - name: Create GitHub canary release
+        if: env.VERSION == 'canary'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create $VERSION --draft --prereleaes --title $VERSION
+
       - name: Create GitHub release
+        if: env.VERSION != 'canary'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release create $VERSION --draft --verify-tag --title $VERSION
