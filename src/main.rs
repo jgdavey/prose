@@ -5,7 +5,6 @@ use std::io::{self, BufRead, BufReader};
 mod analysis;
 mod reformat;
 
-
 use reformat::{reformat, FormatMode, FormatOpts};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
@@ -64,9 +63,8 @@ struct Cli {
 
     /// Try to handle code comments
     #[arg(short, long)]
-    code_comments: bool
+    code_comments: bool,
 }
-
 
 fn main() {
     let cli = Cli::parse();
