@@ -35,8 +35,7 @@ jobs:
       - name: Get the release version from the tag
         if: env.VERSION == ''
         run: |
-          version="${{ github.ref_name }}"
-          echo "VERSION=${version#v}" >> $GITHUB_ENV
+          echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
       - name: Show the version
         run: |
           echo "version is: $VERSION"
@@ -44,7 +43,7 @@ jobs:
         shell: bash
         if: env.VERSION != 'canary'
         run: |
-          if ! grep -q "version = \"$VERSION\"" Cargo.toml; then
+          if ! grep -q "version = \"${VERSION#v}\"" Cargo.toml; then
             echo "version does not match Cargo.toml" >&2
             exit 1
           fi
