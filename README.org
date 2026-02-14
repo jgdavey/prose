@@ -5,7 +5,7 @@
 * prose
 
 #+begin_export md
-[![Build Status](https://github.com/jgdavey/prose/actions/workflows/ci.yml/badge.svg)](https://github.com/jgdavey/prose/actions/workflows/ci.yml)
+[![Build Status](https://github.com/jgdavey/prose/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jgdavey/prose/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/l/prose)](https://crates.io/crates/prose)
 [![Crates.io](https://img.shields.io/crates/v/prose)](https://crates.io/crates/prose)
 #+end_export
