@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate criterion;
 
-use criterion::black_box;
 use criterion::Criterion;
 use prose::{FormatOpts, Reformatter};
+use std::hint::black_box;
 
 fn bench_reformatting(c: &mut Criterion) {
     c.bench_function("analysis", |b| {

@@ -47,9 +47,7 @@ pub fn print_diff(cs: &Changeset) -> std::io::Result<()> {
 
 #[macro_export]
 macro_rules! assert_diff {
-    ($orig:expr, $edit:expr) => {{
-        assert_diff!($orig, $edit, "\n", 0)
-    }};
+    ($orig:expr, $edit:expr) => {{ assert_diff!($orig, $edit, "\n", 0) }};
 
     ($orig:expr, $edit:expr, $split:expr, $expected:expr) => {{
         let orig = $orig;

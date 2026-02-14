@@ -15,4 +15,4 @@
 mod analysis;
 pub mod reformat;
 
-pub use reformat::{reformat, FormatMode, FormatOpts, Reformatter};
+pub use reformat::{FormatMode, FormatOpts, Reformatter, reformat};

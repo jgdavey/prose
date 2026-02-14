@@ -5,7 +5,7 @@ use std::io::{self, BufRead, BufReader};
 mod analysis;
 mod reformat;
 
-use reformat::{reformat, FormatMode, FormatOpts};
+use reformat::{FormatMode, FormatOpts, reformat};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
     println!("{}", reformat(opts, &buf.join("\n")));

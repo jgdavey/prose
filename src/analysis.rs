@@ -56,7 +56,7 @@ fn collect_blocks<'a>(lines: &[&'a str], prefix: &'a str, suffix: &'a str) -> Ve
     let groups = lines
         .iter()
         .map(|s| trim_off(s, prefix, suffix))
-        .group_by(|l| l.trim().is_empty());
+        .chunk_by(|l| l.trim().is_empty());
     for (_, line_group) in &groups {
         let mut words = vec![];
         let mut newline_after = false;

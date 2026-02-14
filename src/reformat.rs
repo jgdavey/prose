@@ -243,8 +243,8 @@ impl<'a> Reformatter<'a> {
 }
 
 pub fn reformat(opts: &FormatOpts, input: &str) -> String {
-    use pulldown_cmark::{Event, Options, Parser, Tag};
     use FormatMode::*;
+    use pulldown_cmark::{Event, Options, Parser, Tag};
 
     let do_reformat = match opts.format_mode {
         Markdown => {
