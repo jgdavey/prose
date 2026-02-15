@@ -47,7 +47,9 @@ fn test_markdown_mode() {
 fn test_code_comments_mode() {
     prose_cmd()
         .args(["-c", "-w", "40"])
-        .write_stdin("// This is a long comment that should be reformatted to fit within the target width.")
+        .write_stdin(
+            "// This is a long comment that should be reformatted to fit within the target width.",
+        )
         .assert()
         .success()
         .stdout(predicates::str::starts_with("// "));
@@ -92,9 +94,5 @@ fn test_nonexistent_file() {
 
 #[test]
 fn test_empty_stdin() {
-    prose_cmd()
-        .write_stdin("")
-        .assert()
-        .success()
-        .stdout("\n");
+    prose_cmd().write_stdin("").assert().success().stdout("\n");
 }
