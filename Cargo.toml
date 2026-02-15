@@ -13,11 +13,11 @@ license = "MIT/Apache-2.0"
 unicode-width = "0.2"
 clap = { version = "4.5", features = ["derive"] }
 pathfinding = "4.9"
-ansi_term = "0.12"
 itertools = "0.14"
 pulldown-cmark = "0.13"
 
 [dev-dependencies]
+ansi_term = "0.12"
 difference = "2.0.0"
 criterion = "0.8"
 
