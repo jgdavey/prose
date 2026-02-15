@@ -11,15 +11,23 @@ license = "MIT/Apache-2.0"
 
 [dependencies]
 unicode-width = "0.2"
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"], optional = true }
 pathfinding = "4.9"
 itertools = "0.14"
 pulldown-cmark = "0.13"
+
+[features]
+default = ["cli"]
+cli = ["clap"]
 
 [dev-dependencies]
 ansi_term = "0.12"
 difference = "2.0.0"
 criterion = "0.8"
+
+[[bin]]
+name = "prose"
+required-features = ["cli"]
 
 [[bench]]
 name = "benchmark"
