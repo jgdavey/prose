@@ -31,9 +31,7 @@ xattr -d com.apple.quarantine path/to/prose
 
 *** Via cargo
 
-If you're a Rust programmer, prose can be installed with cargo. Note
-that the minimum supported version of Rust for prose is 1.38.0,
-although it may work with older versions.
+If you're a Rust programmer, prose can be installed with cargo.
 
 #+begin_src shell :eval never
 cargo install prose

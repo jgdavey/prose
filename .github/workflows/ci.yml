@@ -18,7 +18,7 @@ jobs:
           - macos-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Build project (debug mode)
       shell: bash
@@ -33,17 +33,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Check formatting
       run: |
         cargo fmt --all -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-Dwarnings"
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+    - name: Run clippy
+      run: |
+        cargo clippy --all-targets --all-features
 
   docs:
     name: Docs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check documentation
         # env:
         #   RUSTDOCFLAGS: -D warnings

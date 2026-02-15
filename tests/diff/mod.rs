@@ -1,6 +1,5 @@
 extern crate difference;
 
-use ansi_term;
 use ansi_term::Colour::{Green, Red};
 use ansi_term::Style;
 use difference::{Changeset, Difference};
@@ -23,19 +22,19 @@ pub fn print_diff(cs: &Changeset) -> std::io::Result<()> {
         }
     }
 
-    for i in 0..diffs.len() {
-        match diffs[i] {
-            Difference::Same(ref x) => {
+    for diff in diffs {
+        match diff {
+            Difference::Same(x) => {
                 for line in x.lines() {
                     println!(" {}", line);
                 }
             }
-            Difference::Add(ref x) => {
+            Difference::Add(x) => {
                 for line in x.lines() {
                     println!("{}{}", green_fg.paint("+"), green_fg.paint(line));
                 }
             }
-            Difference::Rem(ref x) => {
+            Difference::Rem(x) => {
                 for line in x.lines() {
                     println!("{}{}", red_fg.paint("-"), red_fg.paint(line));
                 }
