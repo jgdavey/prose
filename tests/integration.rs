@@ -94,6 +94,32 @@ fn test_utf8_with_prefixes() {
 }
 
 #[test]
+fn test_diacritics() {
+    let opts = FormatOpts {
+        max_length: 40,
+        ..Default::default()
+    };
+    let data = include_str!("data/inputs/diacritics.txt");
+    let mut actual = prose::reformat(&opts, data);
+    actual.push('\n'); // usually by virtue of println
+    let expected = include_str!("data/outputs/diacritics_40.txt");
+    assert_diff!(expected, &actual);
+}
+
+#[test]
+fn test_emoji() {
+    let opts = FormatOpts {
+        max_length: 40,
+        ..Default::default()
+    };
+    let data = include_str!("data/inputs/emoji.txt");
+    let mut actual = prose::reformat(&opts, data);
+    actual.push('\n'); // usually by virtue of println
+    let expected = include_str!("data/outputs/emoji_40.txt");
+    assert_diff!(expected, &actual);
+}
+
+#[test]
 fn test_markdown() {
     let opts = FormatOpts {
         max_length: 53,
