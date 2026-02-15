@@ -22,7 +22,9 @@ cli = ["clap"]
 
 [dev-dependencies]
 ansi_term = "0.12"
+assert_cmd = "2"
 difference = "2.0.0"
+predicates = "3"
 criterion = "0.8"
 
 [[bin]]
