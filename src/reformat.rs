@@ -96,37 +96,47 @@ impl<'a> Reformatter<'a> {
         }
     }
 
-    fn successors(
+    fn successors<'b>(
         &self,
-        entries: &[Entry],
+        entries: &'b [Entry],
         i: usize,
         target: usize,
         allow_overage: bool,
-    ) -> Vec<(usize, u64)> {
-        let word1 = &entries[i];
+    ) -> impl Iterator<Item = (usize, u64)> + 'b {
+        let word1_offset = entries[i].offset;
         let count = entries.len();
-        let mut results = vec![];
-        for (j, word2) in entries.iter().enumerate().take(count).skip(i + 1) {
-            let linew = word2.offset - word1.offset + j - i - 1;
+        let last_line = self.last_line;
+        let mut j = i + 1;
+        let mut done = false;
+        let mut emitted = false;
+
+        std::iter::from_fn(move || {
+            if done || j >= count {
+                return None;
+            }
+            let cur_j = j;
+            let linew = entries[cur_j].offset - word1_offset + cur_j - i - 1;
             //width of all words + width of all spaces = total line width
             if linew > target {
-                if results.is_empty() && allow_overage {
+                done = true;
+                if !emitted && allow_overage {
                     // ensure there's always at least a bail-out option
                     // for the next word, but very expensive
-                    results.push((j, 100_000));
+                    return Some((cur_j, 100_000u64));
                 }
-                break;
+                return None;
             }
-            let cost = if j > (count - 2) && !self.last_line {
+            emitted = true;
+            let cost = if cur_j > count - 2 && !last_line {
                 //handle last line
                 0
             } else {
                 let diff = (target - linew) as u64;
                 diff * diff
             };
-            results.push((j, cost));
-        }
-        results
+            j += 1;
+            Some((cur_j, cost))
+        })
     }
 
     fn solve(&self, words: &[Token<'a>], target: usize) -> (Vec<usize>, u64) {
@@ -191,13 +201,12 @@ impl<'a> Reformatter<'a> {
         for s in path.windows(2) {
             if let [start, end] = *s {
                 let mut l = block.prefix.to_string();
-                l.push_str(
-                    &words[start..end]
-                        .iter()
-                        .map(|w| w.to_string())
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                );
+                for (idx, w) in words[start..end].iter().enumerate() {
+                    if idx > 0 {
+                        l.push(' ');
+                    }
+                    l.push_str(w.as_ref());
+                }
                 lines.push(l);
             }
         }
@@ -223,19 +232,22 @@ impl<'a> Reformatter<'a> {
 
         let mut output = vec![];
 
-        for (block, (body, _)) in &sections {
+        for (block, (body, _)) in sections {
             let suffix_length = block.suffix.width();
             let prefix_length = block.prefix.width();
 
             for l in body {
-                let mut line = l.clone();
                 if suffix_length > 0 {
-                    let pad_amount = max_padding - l.width() as i64 + prefix_length as i64;
+                    let l_width = l.width() as i64;
+                    let mut line = l;
+                    let pad_amount = max_padding - l_width + prefix_length as i64;
                     let pad = spaces(std::cmp::max(pad_amount, 0i64) as usize);
                     line.push_str(&pad);
                     line.push_str(block.suffix);
+                    output.push(line);
+                } else {
+                    output.push(l);
                 }
-                output.push(line);
             }
         }
         output.join("\n")
