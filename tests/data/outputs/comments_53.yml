@@ -1,4 +1,11 @@
 #
 # This is some yaml file that is poorly formatted
+#
+# The build-release job runs only once create-release
+# is finished. It gets the release upload URL from
+# create-release job outputs, then builds the release
+# executables for each supported platform and
+# attaches them as release assets to the previously
+# created release.
 
-hello: "yes"
+sample: true

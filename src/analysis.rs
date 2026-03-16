@@ -165,9 +165,20 @@ impl<'a> Input<'a> {
         let comment_style = comment_styles
             .iter()
             .find(|&pat| (first[start..]).starts_with(pat))?;
-        let end = (start + comment_style.len() + 1).min(first.len());
-        let pat = &first[0..end];
-        if self.lines.iter().all(|line| line.starts_with(pat)) {
+        let bare = &first[0..(start + comment_style.len())];
+        // Derive the full prefix (marker + separator char) from the first content line,
+        // since the first line may be a bare marker with nothing after it (e.g. "#").
+        let pat = self
+            .lines
+            .iter()
+            .find(|line| line.len() > bare.len())
+            .map(|line| &line[0..(bare.len() + 1).min(line.len())])
+            .unwrap_or(bare);
+        if self
+            .lines
+            .iter()
+            .all(|line| line.starts_with(pat) || line.trim_end() == bare)
+        {
             let collected = collect_blocks(&self.lines, pat, "");
             Some(collected)
         } else {
