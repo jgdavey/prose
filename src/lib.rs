@@ -16,3 +16,32 @@ mod analysis;
 pub mod reformat;
 
 pub use reformat::{FormatMode, FormatOpts, Reformatter, reformat};
+
+use std::io::{self, BufRead, Write};
+
+fn print_reformatted<W: Write>(out: &mut W, opts: &FormatOpts, buf: &[String]) -> io::Result<()> {
+    if !buf.is_empty() {
+        writeln!(out, "{}", reformat(opts, &buf.join("\n")))?;
+    }
+    Ok(())
+}
+
+pub fn process_paragraphs<R: BufRead + ?Sized, W: Write>(
+    reader: &mut R,
+    out: &mut W,
+    opts: FormatOpts,
+) -> io::Result<()> {
+    let mut buf = vec![];
+    for line in reader.lines() {
+        let l = line?;
+        if l.trim().is_empty() {
+            print_reformatted(out, &opts, &buf)?;
+            writeln!(out)?;
+            buf = vec![];
+        } else {
+            buf.push(l);
+        }
+    }
+    print_reformatted(out, &opts, &buf)?;
+    Ok(())
+}

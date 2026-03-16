@@ -2,32 +2,8 @@ use clap::Parser;
 
 use std::fs;
 use std::io::{self, BufRead, BufReader};
-mod analysis;
-mod reformat;
 
-use reformat::{FormatMode, FormatOpts, reformat};
-
-fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
-    if !buf.is_empty() {
-        println!("{}", reformat(opts, &buf.join("\n")));
-    }
-}
-
-fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::Result<()> {
-    let mut buf = vec![];
-    for line in io.lines() {
-        let l = line?;
-        if l.trim().is_empty() {
-            print_reformatted(&opts, &buf);
-            println!();
-            buf = vec![];
-        } else {
-            buf.push(l);
-        }
-    }
-    print_reformatted(&opts, &buf);
-    Ok(())
-}
+use prose::{FormatMode, FormatOpts, process_paragraphs};
 
 fn get_reader(input: &str) -> io::Result<Box<dyn BufRead>> {
     if input == "-" {
@@ -91,7 +67,9 @@ fn main() {
 
     match get_reader(&input) {
         Ok(mut rdr) => {
-            if let Err(err) = process_paragraphs(&mut rdr, opts) {
+            let stdout = io::stdout();
+            let mut out = stdout.lock();
+            if let Err(err) = process_paragraphs(&mut rdr, &mut out, opts) {
                 eprintln!("{}", err);
                 ::std::process::exit(2);
             }
