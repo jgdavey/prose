@@ -94,5 +94,5 @@ fn test_nonexistent_file() {
 
 #[test]
 fn test_empty_stdin() {
-    prose_cmd().write_stdin("").assert().success().stdout("\n");
+    prose_cmd().write_stdin("").assert().success().stdout("");
 }

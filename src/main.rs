@@ -8,7 +8,9 @@ mod reformat;
 use reformat::{FormatMode, FormatOpts, reformat};
 
 fn print_reformatted(opts: &FormatOpts, buf: &[String]) {
-    println!("{}", reformat(opts, &buf.join("\n")));
+    if !buf.is_empty() {
+        println!("{}", reformat(opts, &buf.join("\n")));
+    }
 }
 
 fn process_paragraphs<R: BufRead + ?Sized>(io: &mut R, opts: FormatOpts) -> io::Result<()> {
