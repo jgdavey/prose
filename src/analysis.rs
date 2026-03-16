@@ -58,25 +58,28 @@ fn collect_blocks<'a>(lines: &[&'a str], prefix: &'a str, suffix: &'a str) -> Ve
         .map(|s| trim_off(s, prefix, suffix))
         .chunk_by(|l| l.trim().is_empty());
     for (_, line_group) in &groups {
-        let mut words = vec![];
+        let mut words: Vec<Token<'a>> = vec![];
         let mut newline_after = false;
         for (i, line) in line_group.enumerate() {
             if line.trim().is_empty() {
                 newline_after = true;
                 continue;
             }
-            let mut w: Vec<_> = line.split_whitespace().collect();
             if i == 0 {
                 let indentation = line.chars().take_while(|&c| c.is_whitespace()).count();
-                let len = w[0].len();
-                w[0] = &line[0..(len + indentation)];
+                let mut iter = line.split_whitespace();
+                if let Some(first_word) = iter.next() {
+                    words.push(Token::Borrowed(&line[0..(first_word.len() + indentation)]));
+                }
+                words.extend(iter.map(Token::Borrowed));
+            } else {
+                words.extend(line.split_whitespace().map(Token::Borrowed));
             }
-            words.extend(w);
         }
         blocks.push(Block {
             prefix,
             suffix,
-            words: words.iter().map(|w| Token::Borrowed(*w)).collect(),
+            words,
             newline_after,
         });
     }
@@ -125,24 +128,26 @@ impl<'a> Input<'a> {
     }
 
     pub fn analyze_quotes(&self) -> Option<Vec<Block<'a>>> {
-        let quotes: Vec<_> = self.lines.iter().map(|line| get_quotes(line)).collect();
-        if quotes.iter().any(|&(l, _)| l > 0) {
-            let mut blocks = vec![];
-            let mut quote = &(0, "");
-            let mut i = 0;
-            let mut idx = 0;
-            for this_quote in quotes.iter() {
-                if quotes[i].0 != quote.0 {
-                    if idx < i {
-                        blocks.extend(collect_blocks(&self.lines[idx..i], quote.1, ""));
-                    }
-                    quote = this_quote;
-                    idx = i;
-                }
-                i += 1;
+        let mut has_quotes = false;
+        let mut blocks = vec![];
+        let mut current_quote: (usize, &str) = (0, "");
+        let mut idx = 0;
+        for (i, line) in self.lines.iter().enumerate() {
+            let this_quote = get_quotes(line);
+            if this_quote.0 > 0 {
+                has_quotes = true;
             }
-            if idx < i {
-                blocks.extend(collect_blocks(&self.lines[idx..i], quote.1, ""));
+            if this_quote.0 != current_quote.0 {
+                if idx < i {
+                    blocks.extend(collect_blocks(&self.lines[idx..i], current_quote.1, ""));
+                }
+                current_quote = this_quote;
+                idx = i;
+            }
+        }
+        if has_quotes {
+            if idx < self.lines.len() {
+                blocks.extend(collect_blocks(&self.lines[idx..], current_quote.1, ""));
             }
             Some(blocks)
         } else {
