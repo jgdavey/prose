@@ -1,6 +1,6 @@
 [package]
 name = "prose"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 authors = ["Joshua Davey <josh@joshuadavey.com>"]
 description = "Reformat text pleasantly"
