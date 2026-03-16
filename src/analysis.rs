@@ -165,7 +165,8 @@ impl<'a> Input<'a> {
         let comment_style = comment_styles
             .iter()
             .find(|&pat| (first[start..]).starts_with(pat))?;
-        let pat = &first[0..=(start + comment_style.len())];
+        let end = (start + comment_style.len() + 1).min(first.len());
+        let pat = &first[0..end];
         if self.lines.iter().all(|line| line.starts_with(pat)) {
             let collected = collect_blocks(&self.lines, pat, "");
             Some(collected)

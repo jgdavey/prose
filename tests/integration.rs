@@ -270,3 +270,16 @@ fn process_test_rust_comments() {
     );
     assert_diff!(include_str!("data/outputs/rust_comments_56.txt"), &actual);
 }
+
+#[test]
+fn process_test_yaml_comments() {
+    let actual = process_to_string(
+        include_str!("data/inputs/comments.yml"),
+        FormatOpts {
+            max_length: 53,
+            format_mode: FormatMode::Code,
+            ..Default::default()
+        },
+    );
+    assert_diff!(include_str!("data/outputs/comments_53.yml"), &actual);
+}
