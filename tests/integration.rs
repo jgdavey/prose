@@ -203,7 +203,10 @@ fn process_test_aggressive_fit() {
             ..Default::default()
         },
     );
-    assert_diff!(include_str!("data/outputs/plain_indented_50_f.txt"), &actual);
+    assert_diff!(
+        include_str!("data/outputs/plain_indented_50_f.txt"),
+        &actual
+    );
 }
 
 #[test]
